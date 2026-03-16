@@ -1,0 +1,1911 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="referrer" content="no-referrer">
+
+<!-- Favicon / App Icons -->
+<link rel="icon" href="./assettes/images.jfif" type="image/jpeg" sizes="32x32">
+<link rel="shortcut icon" href="./assettes/images.jfif" type="image/jpeg">
+<link rel="apple-touch-icon" href="./assettes/images.jfif" sizes="180x180">
+
+<!-- Preview image when you share the link -->
+<meta property="og:title" content="SHARINNGANNE — Voir. Prévoir. Protéger.">
+<meta property="og:description" content="Plateforme de surveillance et d’anticipation des menaces — inspirée du Sharingan.">
+<meta property="og:type" content="website">
+<!-- Remplace l’URL ci-dessous par l’URL complète de ton image de preview -->
+<meta property="og:image" content="assets/img/preview.png">
+
+<title>SHARINNGANNE — Voir. Prévoir. Protéger.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Cinzel:wght@400;600;700&family=Rajdhani:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{-webkit-user-select:none!important;-moz-user-select:none!important;user-select:none!important;-webkit-touch-callout:none!important}
+input,textarea{-webkit-user-select:text!important;user-select:text!important}
+:root{
+  --blood:#8B0000;--crimson:#CC0000;--ember:#FF2200;
+  --dark:#050505;--void:#0F0808;--panel:#1A0A0A;
+  --border:#3A0A0A;--muted:#5C1A1A;
+  --text:#E8D0C8;--sub:#A08070;--white:#F5EDE8;
+  --safe:#00CC44;--warn:#FF8800;--danger:#FF2200;
+  --ft:'Cinzel Decorative',serif;--fb:'Cinzel',serif;
+  --fu:'Rajdhani',sans-serif;--fm:'Share Tech Mono',monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--dark);color:var(--text);font-family:var(--fu);overflow-x:hidden;min-height:100vh;cursor:none}
+#cur{position:fixed;width:18px;height:18px;border:1.5px solid var(--crimson);border-radius:50%;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);transition:width .15s,height .15s,border-color .2s;mix-blend-mode:screen}
+#cur-dot{position:fixed;width:4px;height:4px;background:var(--ember);border-radius:50%;pointer-events:none;z-index:9999;transform:translate(-50%,-50%)}
+#bg-eye{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:min(95vw,95vh);height:min(95vw,95vh);opacity:.055;z-index:0;pointer-events:none;animation:spin 130s linear infinite}
+#bg-eye2{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:min(55vw,55vh);height:min(55vw,55vh);opacity:.04;z-index:0;pointer-events:none;animation:spin-r 85s linear infinite}
+@keyframes spin{to{transform:translate(-50%,-50%)rotate(360deg)}}
+@keyframes spin-r{to{transform:translate(-50%,-50%)rotate(-360deg)}}
+#app{position:relative;z-index:1;display:flex;flex-direction:column;min-height:100vh}
+.screen{display:none;flex-direction:column;min-height:100vh;animation:fadeIn .4s ease}
+.screen.active{display:flex}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+#hack-warning{position:fixed;inset:0;background:#000;z-index:99999;display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+#hack-warning.show{display:flex}
+.hw-eye{animation:hw-pulse 1s ease-in-out infinite;margin-bottom:1.5rem}
+@keyframes hw-pulse{0%,100%{filter:drop-shadow(0 0 20px #CC0000)}50%{filter:drop-shadow(0 0 60px #FF0000)}}
+.hw-title{font-family:var(--ft);font-size:clamp(1.5rem,4vw,2.5rem);color:#CC0000;letter-spacing:.15em;margin-bottom:1rem;text-shadow:0 0 30px #CC0000}
+.hw-msg{font-family:var(--fm);font-size:.85rem;color:#882222;letter-spacing:.1em;line-height:2;max-width:500px}
+.hw-counter{font-family:var(--fm);font-size:2rem;color:#FF2200;margin-top:1.5rem;letter-spacing:.3em;animation:blink-r 1s step-end infinite}
+@keyframes blink-r{0%,100%{opacity:1}50%{opacity:.3}}
+#auth-screen{align-items:center;justify-content:center;padding:2rem;text-align:center;min-height:100vh}
+.auth-logo{margin-bottom:1.8rem;animation:glow-pulse 3s ease-in-out infinite}
+@keyframes glow-pulse{0%,100%{filter:drop-shadow(0 0 14px rgba(204,0,0,.55))}50%{filter:drop-shadow(0 0 32px rgba(204,0,0,.95))}}
+.auth-title{font-family:var(--ft);font-size:clamp(1.8rem,5.5vw,3.2rem);letter-spacing:.15em;color:var(--white);text-shadow:0 0 30px rgba(200,0,0,.6);margin-bottom:.3rem}
+.auth-sub{font-family:var(--fm);font-size:.72rem;color:var(--muted);letter-spacing:.35em;text-transform:uppercase;margin-bottom:2.5rem}
+.auth-card{background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:2.5rem 2rem;width:100%;max-width:440px;position:relative;box-shadow:0 0 50px rgba(100,0,0,.3),inset 0 1px 0 rgba(200,50,50,.08)}
+.auth-card::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:55%;height:1px;background:linear-gradient(90deg,transparent,var(--crimson),transparent)}
+.tab-row{display:flex;margin-bottom:2rem;border:1px solid var(--border);border-radius:2px;overflow:hidden}
+.tab-btn{flex:1;padding:.6rem;background:transparent;border:none;color:var(--muted);cursor:pointer;font-family:var(--fu);font-size:.82rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;transition:all .2s}
+.tab-btn.active{background:var(--blood);color:var(--white)}
+.tab-btn:hover:not(.active){background:rgba(100,0,0,.2);color:var(--text)}
+.form{display:flex;flex-direction:column;gap:.9rem}
+.fl{font-family:var(--fm);font-size:.67rem;color:var(--muted);letter-spacing:.2em;text-transform:uppercase;margin-bottom:.3rem;display:block}
+.fi{background:var(--void);border:1px solid var(--border);border-radius:2px;padding:.7rem 1rem;color:var(--text);font-family:var(--fu);font-size:.95rem;outline:none;transition:border-color .2s,box-shadow .2s;width:100%;-webkit-user-select:text!important;user-select:text!important}
+.fi:focus{border-color:var(--blood);box-shadow:0 0 0 2px rgba(140,0,0,.2)}
+.fi::placeholder{color:var(--muted)}
+.btn{background:linear-gradient(135deg,var(--blood),var(--crimson));border:none;border-radius:2px;padding:.8rem 1.5rem;color:var(--white);font-family:var(--fb);font-size:.85rem;font-weight:600;letter-spacing:.18em;text-transform:uppercase;cursor:pointer;transition:all .3s;white-space:nowrap}
+.btn:hover{box-shadow:0 0 24px rgba(200,0,0,.55);transform:translateY(-1px)}
+.btn:active{transform:translateY(0)}
+.btn.sec{background:transparent;border:1px solid var(--border);color:var(--sub)}
+.btn.sec:hover{border-color:var(--blood);color:var(--text);box-shadow:none;transform:none}
+.btn.success{background:linear-gradient(135deg,#004400,#007700)}
+.btn.danger{background:linear-gradient(135deg,#5C0000,#AA0000)}
+.btn.warn-btn{background:linear-gradient(135deg,#553300,#AA6600)}
+.btn.sm{padding:.35rem .75rem;font-size:.72rem;letter-spacing:.1em}
+.ferr{font-family:var(--fm);font-size:.7rem;color:var(--ember);text-align:center;min-height:1.1em}
+.fok{font-family:var(--fm);font-size:.7rem;color:var(--safe);text-align:center;min-height:1.1em}
+.terms-row{display:flex;align-items:flex-start;gap:.6rem;font-size:.8rem;color:var(--sub);line-height:1.45}
+.terms-row input{accent-color:var(--crimson);margin-top:2px;flex-shrink:0}
+.terms-link{color:var(--crimson);cursor:pointer;text-decoration:underline;background:none;border:none;font-size:.8rem;font-family:var(--fu)}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:.65rem 1.4rem;background:rgba(8,2,2,.97);border-bottom:1px solid var(--border);backdrop-filter:blur(14px);position:sticky;top:0;z-index:100;box-shadow:0 2px 24px rgba(100,0,0,.22)}
+.t-logo{display:flex;align-items:center;gap:.75rem;text-decoration:none;cursor:pointer}
+.t-logo-img{width:32px;height:32px;animation:glow-pulse 3.5s ease-in-out infinite;flex-shrink:0}
+.t-title{font-family:var(--ft);font-size:.95rem;color:var(--white);letter-spacing:.1em;text-shadow:0 0 14px rgba(200,0,0,.5)}
+.t-nav{display:flex;gap:.15rem;flex-wrap:wrap}
+.burger-btn{display:none;width:36px;height:28px;border-radius:20px;border:1px solid var(--border);background:rgba(10,0,0,.9);cursor:pointer;position:relative;overflow:hidden;box-shadow:0 0 12px rgba(200,0,0,.3);transition:background .25s,border-color .25s,transform .2s}
+.burger-btn span{position:absolute;left:7px;right:7px;height:2px;background:var(--sub);border-radius:999px;transition:transform .25s,top .25s,opacity .2s,background .25s}
+.burger-btn span:nth-child(1){top:8px}
+.burger-btn span:nth-child(2){top:13px}
+.burger-btn span:nth-child(3){top:18px}
+.burger-btn.open{background:var(--blood);border-color:var(--crimson);transform:translateY(1px)}
+.burger-btn.open span{background:var(--white)}
+.burger-btn.open span:nth-child(1){top:13px;transform:rotate(45deg)}
+.burger-btn.open span:nth-child(2){opacity:0}
+.burger-btn.open span:nth-child(3){top:13px;transform:rotate(-45deg)}
+.topbar-mobile-nav{display:none;position:fixed;top:48px;left:0;right:0;background:rgba(5,0,0,.98);border-bottom:1px solid var(--border);box-shadow:0 12px 30px rgba(0,0,0,.7);padding:.6rem 1rem;z-index:99}
+.topbar-mobile-nav.open{display:block;animation:fadeIn .25s ease}
+.topbar-mobile-nav .nav-btn{display:block;width:100%;text-align:left;padding:.55rem .4rem}
+.nav-btn{background:transparent;border:none;padding:.45rem .72rem;color:var(--sub);cursor:pointer;font-family:var(--fu);font-size:.75rem;font-weight:500;letter-spacing:.08em;text-transform:uppercase;border-radius:2px;transition:all .2s;position:relative}
+.nav-btn::after{content:'';position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:0;height:1px;background:var(--crimson);transition:width .2s}
+.nav-btn:hover{color:var(--text)}.nav-btn:hover::after,.nav-btn.active::after{width:60%}
+.nav-btn.active{color:var(--crimson)}
+.t-user{display:flex;align-items:center;gap:.65rem}
+.user-badge{font-family:var(--fm);font-size:.68rem;color:var(--muted);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.admin-badge{background:var(--blood);color:var(--white);font-family:var(--fm);font-size:.6rem;padding:.12rem .42rem;border-radius:2px;letter-spacing:.1em;text-transform:uppercase;animation:glow-pulse 4s ease-in-out infinite}
+.logout-btn{background:transparent;border:1px solid var(--border);color:var(--muted);padding:.3rem .6rem;cursor:pointer;font-family:var(--fm);font-size:.64rem;letter-spacing:.1em;text-transform:uppercase;border-radius:2px;transition:all .2s}
+.logout-btn:hover{border-color:var(--blood);color:var(--crimson)}
+.page{display:none;padding:1.8rem 1.5rem;max-width:1140px;margin:0 auto;width:100%}
+.page.active{display:block;animation:fadeIn .35s ease}
+.sh{display:flex;align-items:center;gap:1rem;margin-bottom:1.8rem;padding-bottom:.9rem;border-bottom:1px solid var(--border);position:relative}
+.sh::after{content:'';position:absolute;bottom:-1px;left:0;width:70px;height:1px;background:var(--crimson)}
+.sh-ic{font-size:1.5rem}.sh h2{font-family:var(--fb);font-size:1.2rem;color:var(--white);letter-spacing:.15em;text-transform:uppercase}
+.sh p{font-size:.82rem;color:var(--sub);margin-top:.2rem}
+.divider{border:none;border-top:1px solid var(--border);margin:1.5rem 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(265px,1fr));gap:1.1rem}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:1.4rem;position:relative;overflow:hidden;transition:border-color .2s,box-shadow .2s,transform .2s;cursor:pointer}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--blood),transparent);opacity:0;transition:opacity .2s}
+.card:hover{border-color:var(--blood);box-shadow:0 4px 22px rgba(100,0,0,.28);transform:translateY(-2px)}.card:hover::before{opacity:1}
+.card-ic{font-size:1.7rem;margin-bottom:.7rem}
+.card-title{font-family:var(--fb);font-size:.92rem;color:var(--white);margin-bottom:.4rem}
+.card-text{font-size:.84rem;color:var(--sub);line-height:1.6}
+.shield-bar{display:flex;align-items:center;gap:1rem;background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:1rem 1.3rem;margin-bottom:1.8rem}
+.shield-dot{width:11px;height:11px;border-radius:50%;background:var(--safe);box-shadow:0 0 10px var(--safe);animation:blink 2s ease-in-out infinite;flex-shrink:0}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+.shield-txt{font-family:var(--fm);font-size:.78rem;color:var(--sub)}.shield-txt strong{color:var(--safe)}
+.search-wrap{position:relative;margin-bottom:.6rem}
+.search-input{width:100%;background:var(--void);border:1px solid var(--border);border-radius:3px;padding:.88rem 3.4rem .88rem 1.1rem;color:var(--text);font-family:var(--fu);font-size:.95rem;outline:none;transition:border-color .25s,box-shadow .25s;-webkit-user-select:text!important;user-select:text!important}
+.search-input:focus{border-color:var(--crimson);box-shadow:0 0 0 2px rgba(200,0,0,.15)}
+.search-input::placeholder{color:var(--muted)}
+.search-btn{position:absolute;right:0;top:0;bottom:0;background:var(--blood);border:none;border-radius:0 3px 3px 0;padding:0 1.1rem;color:var(--white);cursor:pointer;font-size:1.1rem;transition:background .2s}
+.search-btn:hover{background:var(--crimson)}
+.stabs{display:flex;gap:.4rem;margin-bottom:.9rem;flex-wrap:wrap}
+.stab{background:transparent;border:1px solid var(--border);border-radius:2px;padding:.3rem .7rem;color:var(--sub);cursor:pointer;font-family:var(--fm);font-size:.67rem;letter-spacing:.1em;text-transform:uppercase;transition:all .2s}
+.stab.active{background:var(--blood);color:var(--white);border-color:var(--blood)}
+.stab:hover:not(.active){border-color:var(--blood);color:var(--text)}
+.analysis-box{background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:1.5rem;margin-top:1rem;animation:fadeIn .3s ease}
+.risk-header{display:flex;align-items:center;gap:1.2rem;margin-bottom:1.2rem;padding-bottom:.9rem;border-bottom:1px solid var(--border)}
+.risk-gauge{position:relative;width:70px;height:70px;flex-shrink:0}
+.risk-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--fm);font-size:1.2rem}
+.ioc-grid{display:grid;grid-template-columns:1fr 1fr;gap:.8rem;margin-bottom:1rem}
+.ioc-block{background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:3px;padding:.8rem}
+.ioc-title{font-family:var(--fm);font-size:.63rem;color:var(--muted);letter-spacing:.2em;text-transform:uppercase;margin-bottom:.5rem}
+.ioc-tag{display:inline-block;background:rgba(200,0,0,.15);border:1px solid rgba(200,0,0,.3);border-radius:2px;padding:.1rem .4rem;font-family:var(--fm);font-size:.67rem;color:var(--crimson);margin:.12rem}
+.ioc-none{font-size:.78rem;color:var(--muted);font-style:italic}
+.recs{display:flex;flex-direction:column;gap:.45rem;margin-bottom:1rem}
+.rec-item{font-size:.84rem;color:var(--text);line-height:1.5;padding:.45rem .7rem;background:rgba(0,0,0,.2);border-radius:2px}
+.action-row{display:flex;gap:.55rem;flex-wrap:wrap}
+.action-btn{background:transparent;border:1px solid var(--border);border-radius:2px;padding:.42rem .85rem;color:var(--sub);cursor:pointer;font-family:var(--fu);font-size:.78rem;letter-spacing:.1em;transition:all .2s;text-decoration:none;display:inline-flex;align-items:center;gap:.35rem}
+.action-btn:hover{border-color:var(--crimson);color:var(--text)}
+.action-btn.primary{background:var(--blood);border-color:var(--blood);color:var(--white)}
+.threat-list{display:flex;flex-direction:column;gap:.9rem}
+.threat-item{background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:1.1rem 1.3rem;display:flex;gap:1rem;align-items:flex-start;border-left:3px solid var(--blood);transition:border-left-color .2s}
+.threat-item:hover{border-left-color:var(--ember);box-shadow:0 3px 18px rgba(100,0,0,.2)}
+.t-sev{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--fm);font-size:.82rem;font-weight:bold;flex-shrink:0;margin-top:2px}
+.sev-4{background:rgba(204,0,0,.2);border:1px solid var(--crimson);color:var(--ember)}
+.sev-3{background:rgba(255,136,0,.15);border:1px solid #884400;color:#FF8800}
+.sev-2{background:rgba(0,150,100,.12);border:1px solid #005544;color:#00BB88}
+.t-body{flex:1}.t-title{font-family:var(--fb);font-size:.88rem;color:var(--white);margin-bottom:.3rem}
+.t-desc{font-size:.82rem;color:var(--sub);line-height:1.5;margin-bottom:.45rem}
+.t-meta{display:flex;gap:.7rem;flex-wrap:wrap}.t-tag{font-family:var(--fm);font-size:.62rem;color:var(--muted)}
+.t-rec{margin-top:.45rem;padding:.45rem .65rem;background:rgba(0,0,0,.3);border-radius:2px;font-size:.8rem;color:var(--text)}
+.msg-layout{display:grid;grid-template-columns:250px 1fr;gap:1.1rem;height:calc(100vh - 220px);min-height:380px}
+.msg-sidebar{background:var(--panel);border:1px solid var(--border);border-radius:4px;display:flex;flex-direction:column;overflow:hidden}
+.msg-sh{padding:.75rem 1rem;border-bottom:1px solid var(--border);font-family:var(--fm);font-size:.67rem;color:var(--muted);letter-spacing:.18em;text-transform:uppercase;display:flex;justify-content:space-between;align-items:center}
+.new-c{color:var(--crimson);cursor:pointer;font-size:.7rem}.new-c:hover{color:var(--ember)}
+.c-list{flex:1;overflow-y:auto}
+.c-item{padding:.72rem .9rem;border-bottom:1px solid rgba(58,10,10,.35);cursor:pointer;display:flex;gap:.6rem;align-items:center;transition:background .12s}
+.c-item:hover,.c-item.active{background:rgba(100,0,0,.15)}
+.c-av{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--blood),var(--void));border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:600;color:var(--crimson);flex-shrink:0}
+.c-name{font-size:.84rem;color:var(--text)}.c-key{font-family:var(--fm);font-size:.61rem;color:var(--muted);margin-top:.1rem}
+.key-sec{padding:.75rem;border-top:1px solid var(--border)}
+.key-lbl{font-family:var(--fm);font-size:.63rem;color:var(--muted);letter-spacing:.18em;text-transform:uppercase;margin-bottom:.4rem}
+.key-display{background:var(--void);border:1px solid var(--border);border-radius:2px;padding:.42rem .62rem;font-family:var(--fm);font-size:.77rem;color:var(--crimson);letter-spacing:.1em;cursor:pointer;margin-bottom:.4rem;-webkit-user-select:text!important;user-select:text!important;transition:border-color .2s}
+.key-display:hover{border-color:var(--blood)}
+.msg-window{background:var(--panel);border:1px solid var(--border);border-radius:4px;display:flex;flex-direction:column;overflow:hidden}
+.msg-head{padding:.72rem 1.1rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.msg-hname{font-family:var(--fb);font-size:.86rem;color:var(--white)}.msg-hkey{font-family:var(--fm);font-size:.66rem;color:var(--muted)}
+.e2e{font-family:var(--fm);font-size:.61rem;color:var(--safe);border:1px solid #005533;padding:.1rem .35rem;border-radius:2px}
+.msg-body{flex:1;overflow-y:auto;padding:.95rem;display:flex;flex-direction:column;gap:.65rem}
+.bubble{max-width:72%;padding:.62rem .9rem;border-radius:4px;font-size:.85rem;line-height:1.5}
+.bubble.sent{align-self:flex-end;background:linear-gradient(135deg,rgba(139,0,0,.4),rgba(100,0,0,.25));border:1px solid var(--blood);color:var(--text)}
+.bubble.recv{align-self:flex-start;background:var(--void);border:1px solid var(--border);color:var(--sub)}
+.msg-time{font-family:var(--fm);font-size:.57rem;color:var(--muted);margin-top:.22rem;text-align:right}
+.msg-footer{padding:.65rem .88rem;border-top:1px solid var(--border);display:flex;gap:.42rem;align-items:center}
+.msg-inp{flex:1;background:var(--void);border:1px solid var(--border);border-radius:2px;padding:.56rem .82rem;color:var(--text);font-family:var(--fu);font-size:.9rem;outline:none;transition:border-color .2s;-webkit-user-select:text!important;user-select:text!important}
+.msg-inp:focus{border-color:var(--blood)}.msg-inp::placeholder{color:var(--muted)}
+.send-btn{background:var(--blood);border:none;border-radius:2px;padding:.56rem .88rem;color:var(--white);cursor:pointer;font-family:var(--fu);font-size:.78rem;font-weight:600;letter-spacing:.1em;transition:background .2s}
+.send-btn:hover{background:var(--crimson)}
+.att-btn{background:transparent;border:1px solid var(--border);border-radius:2px;padding:.56rem .72rem;color:var(--muted);cursor:pointer;font-size:.92rem;transition:all .2s}
+.att-btn:hover{border-color:var(--blood);color:var(--text)}
+.inv-sec{background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:1.1rem;margin-top:1.1rem}
+.inv-row{display:flex;gap:.5rem}.inv-row .fi{flex:1}
+.res-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:.9rem}
+.res-card{background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:1.05rem;display:flex;gap:.85rem;align-items:flex-start;cursor:pointer;transition:all .2s;text-decoration:none}
+.res-card:hover{border-color:var(--blood);background:rgba(100,0,0,.08);transform:translateY(-1px)}
+.res-ic{font-size:1.3rem;flex-shrink:0}
+.res-title{font-family:var(--fb);font-size:.86rem;color:var(--text);margin-bottom:.22rem}
+.res-tag{font-family:var(--fm);font-size:.61rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
+.chatbot-cta{background:linear-gradient(135deg,var(--blood),#440000);border:1px solid var(--crimson);border-radius:4px;padding:1.25rem 1.7rem;color:var(--white);cursor:pointer;display:flex;align-items:center;gap:1.1rem;width:100%;text-align:left;margin-bottom:1.3rem;transition:all .3s;box-shadow:0 4px 22px rgba(100,0,0,.28)}
+.chatbot-cta:hover{box-shadow:0 6px 32px rgba(200,0,0,.42);transform:translateY(-2px)}
+.stat-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:.9rem;margin-bottom:1.8rem}
+.stat-card{background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:1.1rem;position:relative;overflow:hidden}
+.stat-card::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;background:var(--crimson)}
+.stat-val{font-family:var(--fm);font-size:1.55rem;color:var(--crimson);margin-bottom:.3rem}
+.stat-lbl{font-size:.82rem;color:var(--sub)}
+.admin-wrap{background:var(--panel);border:1px solid var(--border);border-radius:4px;overflow:hidden;margin-bottom:1.5rem}
+.admin-toolbar{display:flex;align-items:center;gap:.7rem;padding:.9rem 1.1rem;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.admin-si{background:var(--void);border:1px solid var(--border);border-radius:2px;padding:.45rem .8rem;color:var(--text);font-family:var(--fm);font-size:.78rem;outline:none;transition:border-color .2s;flex:1;min-width:160px;-webkit-user-select:text!important;user-select:text!important}
+.admin-si:focus{border-color:var(--blood)}.admin-si::placeholder{color:var(--muted)}
+.admin-table{width:100%;border-collapse:collapse}
+.admin-table th{padding:.62rem .95rem;text-align:left;font-family:var(--fm);font-size:.65rem;color:var(--muted);letter-spacing:.15em;text-transform:uppercase;background:rgba(0,0,0,.35);border-bottom:1px solid var(--border)}
+.admin-table td{padding:.6rem .95rem;border-bottom:1px solid rgba(58,10,10,.4);font-size:.84rem;vertical-align:middle}
+.admin-table tr:hover td{background:rgba(100,0,0,.06)}
+.s-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px}
+.dot-g{background:var(--safe);box-shadow:0 0 5px var(--safe)}.dot-r{background:var(--ember);box-shadow:0 0 5px var(--ember)}
+.user-actions{display:flex;gap:.35rem;flex-wrap:wrap}
+.pwd-cell{font-family:var(--fm);font-size:.76rem;cursor:pointer;color:var(--sub);filter:blur(4px);transition:filter .2s}
+.pwd-cell:hover{filter:none;color:var(--text)}
+.key-mono{font-family:var(--fm);font-size:.75rem;color:var(--crimson)}
+.badge-admin{background:var(--blood);color:var(--white);font-family:var(--fm);font-size:.58rem;padding:.1rem .35rem;border-radius:2px;letter-spacing:.08em}
+.log-item{padding:.4rem .75rem;background:rgba(0,0,0,.3);border-radius:2px;border-left:2px solid var(--border);font-family:var(--fm);font-size:.72rem;line-height:1.5;margin-bottom:.35rem}
+#cgu-screen{align-items:center;justify-content:flex-start;padding:3rem 1.5rem;min-height:100vh}
+.cgu-wrap{max-width:820px;width:100%;margin:0 auto}
+.cgu-header{text-align:center;margin-bottom:3rem;padding-bottom:2rem;border-bottom:1px solid var(--border)}
+.cgu-title{font-family:var(--ft);font-size:clamp(1.5rem,4vw,2.5rem);color:var(--white);text-shadow:0 0 24px rgba(200,0,0,.5);margin-bottom:.5rem}
+.cgu-date{font-family:var(--fm);font-size:.7rem;color:var(--muted);letter-spacing:.2em}
+.cgu-sec{margin-bottom:2.5rem}
+.cgu-num{font-family:var(--fm);font-size:.68rem;color:var(--crimson);letter-spacing:.2em;text-transform:uppercase;margin-bottom:.4rem}
+.cgu-sec h3{font-family:var(--fb);font-size:1.05rem;color:var(--white);margin-bottom:.9rem}
+.cgu-sec p,.cgu-sec li{font-size:.9rem;color:var(--sub);line-height:1.75;margin-bottom:.6rem}
+.cgu-sec ul{padding-left:1.4rem}
+.cgu-sec li{list-style:none;position:relative;padding-left:.8rem}
+.cgu-sec li::before{content:'▸';position:absolute;left:0;color:var(--crimson);font-size:.75rem}
+.cgu-hi{background:rgba(139,0,0,.12);border:1px solid var(--border);border-left:3px solid var(--crimson);border-radius:0 3px 3px 0;padding:.8rem 1.1rem;margin:1rem 0}
+.cgu-hi p{font-size:.85rem;color:var(--text);margin:0}
+.back-btn{background:transparent;border:1px solid var(--border);color:var(--sub);padding:.55rem 1.1rem;cursor:pointer;font-family:var(--fb);font-size:.8rem;letter-spacing:.15em;text-transform:uppercase;border-radius:2px;transition:all .2s;display:inline-flex;align-items:center;gap:.5rem;text-decoration:none}
+.back-btn:hover{border-color:var(--crimson);color:var(--text)}
+.modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:500;display:none;align-items:center;justify-content:center;backdrop-filter:blur(5px)}
+.modal-ov.active{display:flex}
+.modal{background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:2rem;width:90%;max-width:460px;position:relative;max-height:90vh;overflow-y:auto}
+.modal-title{font-family:var(--fb);font-size:1.05rem;color:var(--white);margin-bottom:1.4rem}
+.modal-x{position:absolute;top:.9rem;right:.9rem;background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:1.1rem;transition:color .2s}
+.modal-x:hover{color:var(--ember)}
+.modal-footer{display:flex;gap:.6rem;justify-content:flex-end;margin-top:1.4rem;padding-top:1rem;border-top:1px solid var(--border)}
+.map-box{background:var(--panel);border:1px solid var(--border);border-radius:4px;height:400px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:.8rem;position:relative;overflow:hidden}
+.map-box::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 35% 45%,rgba(139,0,0,.12) 0%,transparent 55%)}
+#toast{position:fixed;bottom:4rem;left:50%;transform:translateX(-50%) translateY(20px);background:var(--panel);border:1px solid var(--border);border-radius:3px;padding:.6rem 1.3rem;font-family:var(--fm);font-size:.74rem;color:var(--text);z-index:600;opacity:0;transition:all .3s;pointer-events:none;white-space:nowrap;max-width:90vw}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.lang-wrap{position:fixed;bottom:1.2rem;right:1.2rem;z-index:200;display:flex;gap:.25rem}
+.lang-btn{background:var(--panel);border:1px solid var(--border);color:var(--muted);padding:.32rem .52rem;cursor:pointer;font-family:var(--fm);font-size:.66rem;letter-spacing:.1em;text-transform:uppercase;border-radius:2px;transition:all .2s}
+.lang-btn.active{background:var(--blood);color:var(--white);border-color:var(--blood)}
+.lang-btn:hover:not(.active){border-color:var(--blood);color:var(--text)}
+.loading{display:inline-flex;align-items:center;gap:.5rem;font-family:var(--fm);font-size:.74rem;color:var(--muted)}
+.loading::before{content:'';width:11px;height:11px;border:1.5px solid var(--border);border-top-color:var(--crimson);border-radius:50%;animation:spin .6s linear infinite;display:block;flex-shrink:0}
+.maps-row{display:flex;gap:1rem;margin-bottom:1.5rem;flex-wrap:wrap}
+.map-card{flex:1;background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:1rem;min-width:300px;position:relative}
+.map-vis{width:100%;height:200px;background:rgba(0,0,0,.3);border:1px solid var(--border);margin-top:.8rem;position:relative;overflow:hidden;border-radius:2px}
+.map-vis img{width:100%;height:100%;object-fit:cover;opacity:.8;transition:opacity .5s}
+.map-vis:hover img{opacity:1;transform:scale(1.02)}
+.alert-box{background:var(--void);border:1px solid var(--border);border-left:3px solid var(--crimson);border-radius:4px;padding:1rem;margin-bottom:1.5rem;height:200px;overflow-y:auto}
+.alert-item{padding:.6rem 0;border-bottom:1px solid rgba(100,0,0,.2);display:flex;gap:.8rem;align-items:flex-start}
+.alert-time{font-family:var(--fm);font-size:.7rem;color:var(--crimson);white-space:nowrap}
+.alert-txt{font-size:.85rem;color:var(--sub)}.alert-src{font-size:.7rem;color:var(--muted);margin-top:.2rem;font-style:italic}
+.risk-bar-wrap{background:rgba(0,0,0,.3);height:6px;border-radius:3px;margin-top:.4rem;position:relative;overflow:hidden}
+.risk-fill{height:100%;background:var(--blood);border-radius:3px}
+.travel-box{background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:1.2rem;margin-bottom:1.5rem}
+.res-val{font-family:var(--fm);font-size:1.1rem;color:var(--crimson)}
+::-webkit-scrollbar{width:3px;height:3px}::-webkit-scrollbar-track{background:var(--void)}::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}::-webkit-scrollbar-thumb:hover{background:var(--blood)}
+@media(max-width:768px){
+  .msg-layout{grid-template-columns:1fr;height:auto;min-height:0}
+  .msg-sidebar{display:none}
+  .t-nav{display:none}
+  .ioc-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div id="cur"></div><div id="cur-dot"></div>
+
+<!-- HACK WARNING -->
+<div id="hack-warning">
+  <div class="hw-eye">
+    <svg width="100" height="100" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="100" cy="100" r="90" fill="#050000"/><circle cx="100" cy="100" r="86" fill="none" stroke="#CC0000" stroke-width="3"/>
+      <circle cx="100" cy="100" r="38" fill="#200000"/>
+      <g transform="rotate(0 100 100)"><path d="M100 62 Q110 72 108 83 Q99 78 92 83 Q90 72 100 62Z" fill="#CC0000"/><circle cx="100" cy="56" r="9" fill="#CC0000"/></g>
+      <g transform="rotate(120 100 100)"><path d="M100 62 Q110 72 108 83 Q99 78 92 83 Q90 72 100 62Z" fill="#CC0000"/><circle cx="100" cy="56" r="9" fill="#CC0000"/></g>
+      <g transform="rotate(240 100 100)"><path d="M100 62 Q110 72 108 83 Q99 78 92 83 Q90 72 100 62Z" fill="#CC0000"/><circle cx="100" cy="56" r="9" fill="#CC0000"/></g>
+      <circle cx="100" cy="100" r="20" fill="#050000"/><circle cx="100" cy="100" r="12" fill="#CC0000" opacity=".7"/>
+    </svg>
+  </div>
+  <div class="hw-title" id="hw-title">⚠ INTRUSION DÉTECTÉE ⚠</div>
+  <div class="hw-msg" id="hw-msg">Le Sharingan vous observe.<br>Toute tentative d'inspection est enregistrée et tracée.<br><br><span style="color:#CC0000">Votre activité est journalisée.</span><br>Retournez à une utilisation normale.</div>
+  <div class="hw-counter" id="hw-count">10</div>
+</div>
+
+<!-- BG -->
+<svg id="bg-eye" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="100" cy="100" r="96" fill="none" stroke="#CC0000" stroke-width="1.5"/><circle cx="100" cy="100" r="76" fill="none" stroke="#880000" stroke-width=".7"/>
+  <circle cx="100" cy="100" r="32" fill="#220000"/><circle cx="100" cy="100" r="30" fill="none" stroke="#CC0000" stroke-width=".5"/>
+  <g transform="rotate(0 100 100)"><path d="M100 70 Q109 78 107 87 Q99 83 93 87 Q91 78 100 70Z" fill="#CC0000"/><circle cx="100" cy="64" r="8" fill="#CC0000"/></g>
+  <g transform="rotate(120 100 100)"><path d="M100 70 Q109 78 107 87 Q99 83 93 87 Q91 78 100 70Z" fill="#CC0000"/><circle cx="100" cy="64" r="8" fill="#CC0000"/></g>
+  <g transform="rotate(240 100 100)"><path d="M100 70 Q109 78 107 87 Q99 83 93 87 Q91 78 100 70Z" fill="#CC0000"/><circle cx="100" cy="64" r="8" fill="#CC0000"/></g>
+  <circle cx="100" cy="100" r="15" fill="#0A0000"/><circle cx="100" cy="100" r="8" fill="#CC0000" opacity=".6"/><circle cx="100" cy="100" r="4" fill="#FF4400"/>
+</svg>
+<svg id="bg-eye2" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="100" cy="100" r="90" fill="none" stroke="#770000" stroke-width=".6"/>
+  <circle cx="100" cy="100" r="55" fill="none" stroke="#550000" stroke-width=".4" stroke-dasharray="4 6"/>
+</svg>
+
+<div class="lang-wrap">
+  <button class="lang-btn active" onclick="setLang('fr')">FR</button>
+  <button class="lang-btn" onclick="setLang('en')">EN</button>
+  <button class="lang-btn" onclick="setLang('wo')">WO</button>
+</div>
+<div id="toast"></div>
+
+<div id="app">
+
+<!-- CGU -->
+<div id="cgu-screen" class="screen">
+  <div class="cgu-wrap">
+    <div style="margin-bottom:2rem"><button class="back-btn" onclick="showScreen('auth')">← <span data-t="back">Retour</span></button></div>
+    <div class="cgu-header">
+      <div style="margin-bottom:1.2rem;animation:glow-pulse 3s ease-in-out infinite">
+        <svg width="60" height="60" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="100" r="90" fill="#080000"/><circle cx="100" cy="100" r="86" fill="none" stroke="#CC0000" stroke-width="2"/><circle cx="100" cy="100" r="34" fill="#150000"/><g transform="rotate(0 100 100)"><path d="M100 66 Q108 74 106 83 Q99 79 94 83 Q92 74 100 66Z" fill="#CC0000"/><circle cx="100" cy="61" r="7" fill="#CC0000"/></g><g transform="rotate(120 100 100)"><path d="M100 66 Q108 74 106 83 Q99 79 94 83 Q92 74 100 66Z" fill="#CC0000"/><circle cx="100" cy="61" r="7" fill="#CC0000"/></g><g transform="rotate(240 100 100)"><path d="M100 66 Q108 74 106 83 Q99 79 94 83 Q92 74 100 66Z" fill="#CC0000"/><circle cx="100" cy="61" r="7" fill="#CC0000"/></g><circle cx="100" cy="100" r="16" fill="#030000"/><circle cx="100" cy="100" r="8" fill="#CC0000" opacity=".65"/></svg>
+      </div>
+      <div class="cgu-title" data-t="cgu_title">Conditions d'Utilisation</div>
+      <div class="cgu-date" data-t="cgu_version">SHARINNGANNE — Version 1.0 · Mars 2026 · Dakar, Sénégal</div>
+    </div>
+    <div class="cgu-sec"><div class="cgu-num" data-t="art_01">Article 01</div><h3 data-t="cgu_a1_h">Présentation du service</h3><p data-t="cgu_a1_p">SHARINNGANNE est une plateforme numérique de protection, de veille cybersécurité et de communication sécurisée, développée par <strong style="color:var(--text)">Seydou Bakhayokho</strong>.</p></div>
+    <div class="cgu-sec"><div class="cgu-num" data-t="art_02">Article 02</div><h3 data-t="cgu_a2_h">Acceptation des conditions</h3><p data-t="cgu_a2_p">En cochant la case lors de votre inscription, vous acceptez pleinement ces termes.</p><div class="cgu-hi"><p data-t="cgu_a2_w">⚠️ Si vous n'acceptez pas ces conditions, vous ne pouvez pas utiliser SHARINNGANNE.</p></div></div>
+    <div class="cgu-sec"><div class="cgu-num" data-t="art_03">Article 03</div><h3 data-t="cgu_a3_h">Inscription et compte</h3><ul><li data-t="cgu_a3_l1">L'inscription requiert un email fonctionnel et un mot de passe d'au moins 8 caractères.</li><li data-t="cgu_a3_l2">Vous êtes responsable de la confidentialité de vos identifiants.</li><li data-t="cgu_a3_l3">Une clé unique SHR-XXXXXX vous est attribuée pour la messagerie sécurisée.</li></ul></div>
+    <div class="cgu-sec"><div class="cgu-num" data-t="art_04">Article 04</div><h3 data-t="cgu_a4_h">Protection des données</h3><div class="cgu-hi"><p data-t="cgu_a4_w">🔒 Vos données sont stockées sur Supabase. Seul l'administrateur Seydou Bakhayokho a accès. Les mots de passe ne sont jamais stockés en clair.</p></div><ul><li data-t="cgu_a4_l1">Aucune donnée vendue ou partagée à des tiers.</li><li data-t="cgu_a4_l2">Vous pouvez demander la suppression de votre compte à tout moment.</li></ul></div>
+    <div class="cgu-sec"><div class="cgu-num" data-t="art_05">Article 05</div><h3 data-t="cgu_a5_h">Usage acceptable</h3><ul><li data-t="cgu_a5_l1">Utilisation uniquement légale et éthique.</li><li data-t="cgu_a5_l2">Interdiction de diffuser des contenus illicites.</li><li data-t="cgu_a5_l3">Interdiction de tenter d'inspecter ou copier le code source.</li></ul><div class="cgu-hi"><p data-t="cgu_a5_w">🚫 Toute tentative de piratage entraîne une suspension immédiate.</p></div></div>
+    <div class="cgu-sec"><div class="cgu-num" data-t="art_06">Article 06</div><h3 data-t="cgu_a6_h">Droits de l'utilisateur</h3><ul><li data-t="cgu_a6_l1">Droit d'accès — demander vos données.</li><li data-t="cgu_a6_l2">Droit de rectification — corriger vos informations.</li><li data-t="cgu_a6_l3">Droit à l'effacement — supprimer votre compte.</li></ul><p><span data-t="contact_lbl">Contact</span>: <span style="color:var(--crimson);font-family:var(--fm)">usersdbsn@gmail.com</span></p></div>
+    <div class="cgu-sec"><div class="cgu-num" data-t="art_07">Article 07</div><h3 data-t="cgu_a7_h">Juridiction</h3><p data-t="cgu_a7_p">Ces conditions sont soumises au droit sénégalais. Tout litige relève des tribunaux de Dakar, Sénégal.</p></div>
+    <div style="text-align:center;margin-top:3rem;padding-top:2rem;border-top:1px solid var(--border)">
+      <div style="font-family:var(--fm);font-size:.7rem;color:var(--muted);margin-bottom:1.5rem" data-t="footer_copy">© 2026 SHARINNGANNE — Seydou Bakhayokho</div>
+      <button class="btn" onclick="showScreen('auth')" data-t="back_home">← Retour à l'accueil</button>
+    </div>
+  </div>
+</div>
+
+<!-- AUTH -->
+<div id="auth-screen" class="screen active">
+  <div class="auth-logo">
+    <svg width="88" height="88" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+      <defs><radialGradient id="eg" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#FF2200"/><stop offset="55%" stop-color="#CC0000"/><stop offset="100%" stop-color="#220000"/></radialGradient></defs>
+      <circle cx="100" cy="100" r="96" fill="#050000"/><circle cx="100" cy="100" r="92" fill="none" stroke="#CC0000" stroke-width="2"/>
+      <circle cx="100" cy="100" r="68" fill="url(#eg)" opacity=".12"/><circle cx="100" cy="100" r="38" fill="#150000"/>
+      <circle cx="100" cy="100" r="36" fill="none" stroke="#CC0000" stroke-width="1"/>
+      <g transform="rotate(0 100 100)"><path d="M100 64 Q109 73 107 82 Q99 78 93 82 Q91 73 100 64Z" fill="#CC0000"/><circle cx="100" cy="59" r="8" fill="#CC0000"/></g>
+      <g transform="rotate(120 100 100)"><path d="M100 64 Q109 73 107 82 Q99 78 93 82 Q91 73 100 64Z" fill="#CC0000"/><circle cx="100" cy="59" r="8" fill="#CC0000"/></g>
+      <g transform="rotate(240 100 100)"><path d="M100 64 Q109 73 107 82 Q99 78 93 82 Q91 73 100 64Z" fill="#CC0000"/><circle cx="100" cy="59" r="8" fill="#CC0000"/></g>
+      <circle cx="100" cy="100" r="18" fill="#030000"/><circle cx="100" cy="100" r="10" fill="#CC0000" opacity=".6"/>
+      <circle cx="100" cy="100" r="5" fill="#FF4400"/><circle cx="95" cy="95" r="3" fill="rgba(255,255,255,.2)"/>
+    </svg>
+  </div>
+  <div class="auth-title">SHARINNGANNE</div>
+  <div class="auth-sub" data-t="tagline">Voir · Prévoir · Protéger</div>
+  <div class="auth-card">
+    <div class="tab-row">
+      <button class="tab-btn active" onclick="switchTab('login')" data-t="tab_login">Connexion</button>
+      <button class="tab-btn" onclick="switchTab('register')" data-t="tab_register">Inscription</button>
+    </div>
+    <div id="login-form" class="form">
+      <div><label class="fl" data-t="lbl_email">Adresse Email</label><input id="li-email" class="fi" type="email" placeholder="votre@email.com" data-ph="ph_email" autocomplete="email" onkeydown="if(event.key==='Enter')doLogin()"/></div>
+      <div><label class="fl" data-t="lbl_pass">Mot de Passe</label><input id="li-pass" class="fi" type="password" placeholder="••••••••" data-ph="ph_pass" onkeydown="if(event.key==='Enter')doLogin()"/></div>
+      <div class="ferr" id="li-err"></div>
+      <button class="btn" onclick="doLogin()" id="li-btn" data-t="btn_activate">Activer le Sharingan</button>
+    </div>
+    <div id="reg-form" class="form" style="display:none">
+      <div><label class="fl" data-t="lbl_email">Adresse Email</label><input id="re-email" class="fi" type="email" placeholder="votre@email.com" data-ph="ph_email"/></div>
+      <div><label class="fl" data-t="lbl_newpass">Créer un Mot de Passe</label><input id="re-pass" class="fi" type="password" placeholder="Min. 8 caractères" data-ph="ph_min8"/></div>
+      <div><label class="fl" data-t="lbl_confirm">Confirmer</label><input id="re-pass2" class="fi" type="password" placeholder="Répétez le mot de passe" data-ph="ph_repeat"/></div>
+      <div class="terms-row"><input type="checkbox" id="terms-chk"/><label for="terms-chk" data-t="terms_label">J'accepte les <button class="terms-link" onclick="showScreen('cgu')">Conditions d'Utilisation</button>.</label></div>
+      <div class="ferr" id="re-err"></div>
+      <button class="btn" onclick="doRegister()" data-t="btn_join">Rejoindre SHARINNGANNE</button>
+    </div>
+  </div>
+  <div style="margin-top:1.2rem;font-family:var(--fm);font-size:.68rem;color:var(--muted);text-align:center">
+    <button class="terms-link" onclick="showScreen('cgu')" data-t="cgu_link">📜 Conditions d'Utilisation</button>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div id="main-screen" class="screen">
+  <div class="topbar">
+    <div class="t-logo" onclick="showPage('dashboard')">
+      <svg class="t-logo-img" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="100" cy="100" r="90" fill="#080000"/><circle cx="100" cy="100" r="86" fill="none" stroke="#CC0000" stroke-width="2"/>
+        <circle cx="100" cy="100" r="34" fill="#150000"/>
+        <g transform="rotate(0 100 100)"><path d="M100 66 Q108 74 106 83 Q99 79 94 83 Q92 74 100 66Z" fill="#CC0000"/><circle cx="100" cy="61" r="7" fill="#CC0000"/></g>
+        <g transform="rotate(120 100 100)"><path d="M100 66 Q108 74 106 83 Q99 79 94 83 Q92 74 100 66Z" fill="#CC0000"/><circle cx="100" cy="61" r="7" fill="#CC0000"/></g>
+        <g transform="rotate(240 100 100)"><path d="M100 66 Q108 74 106 83 Q99 79 94 83 Q92 74 100 66Z" fill="#CC0000"/><circle cx="100" cy="61" r="7" fill="#CC0000"/></g>
+        <circle cx="100" cy="100" r="16" fill="#030000"/><circle cx="100" cy="100" r="8" fill="#CC0000" opacity=".65"/>
+      </svg>
+      <span class="t-title">SHARINNGANNE</span>
+    </div>
+    <div class="t-nav">
+      <button class="nav-btn active" onclick="showPage('dashboard')" data-t="nav_shield">🛡️ Bouclier</button>
+      <button class="nav-btn" onclick="showPage('search')" data-t="nav_analyze">🔍 Analyser</button>
+      <button class="nav-btn" onclick="showPage('threats')" data-t="nav_dark">🕸️ Dark Web</button>
+      <button class="nav-btn" onclick="showPage('messages')" data-t="nav_msg">🔑 Messages</button>
+      <button class="nav-btn" onclick="showPage('veille')" data-t="nav_watch">🌍 Veille</button>
+      <button class="nav-btn" onclick="showPage('ressources')" data-t="nav_res">📚 Ressources</button>
+      <button class="nav-btn" id="admin-nav" onclick="showPage('admin')" style="display:none" data-t="nav_admin">⚙️ Admin</button>
+    </div>
+    <button class="burger-btn" id="burger-btn" aria-label="Ouvrir le menu" onclick="toggleMobileNav()">
+      <span></span><span></span><span></span>
+    </button>
+    <div class="t-user">
+      <span class="user-badge" id="user-lbl"></span>
+      <span class="admin-badge" id="admin-badge" style="display:none" data-t="badge_admin">ADMIN</span>
+      <button class="logout-btn" onclick="doLogout()" data-t="logout">Déconnexion</button>
+    </div>
+  </div>
+  <div class="topbar-mobile-nav" id="topbar-mobile-nav">
+    <button class="nav-btn active" onclick="showPage('dashboard')" data-t="nav_shield">🛡️ Bouclier</button>
+    <button class="nav-btn" onclick="showPage('search')" data-t="nav_analyze">🔍 Analyser</button>
+    <button class="nav-btn" onclick="showPage('threats')" data-t="nav_dark">🕸️ Dark Web</button>
+    <button class="nav-btn" onclick="showPage('messages')" data-t="nav_msg">🔑 Messages</button>
+    <button class="nav-btn" onclick="showPage('veille')" data-t="nav_watch">🌍 Veille</button>
+    <button class="nav-btn" onclick="showPage('ressources')" data-t="nav_res">📚 Ressources</button>
+    <button class="nav-btn" id="admin-nav-mobile" onclick="showPage('admin')" style="display:none" data-t="nav_admin">⚙️ Admin</button>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div class="page active" id="page-dashboard">
+    <div class="sh"><span class="sh-ic">🛡️</span><div><h2 data-t="page_shield">Bouclier Visionnaire</h2><p data-t="page_shield_sub">Premier rempart contre les menaces numériques</p></div></div>
+    <div class="shield-bar"><div class="shield-dot"></div><div class="shield-txt"><strong data-t="shield_on">Bouclier Actif</strong> — <span data-t="shield_desc">Protection activée · Supabase connecté · Moteur d'analyse opérationnel</span></div></div>
+    <div style="margin-bottom:1.8rem">
+      <div style="font-family:var(--fm);font-size:.67rem;color:var(--muted);letter-spacing:.2em;text-transform:uppercase;margin-bottom:.6rem" data-t="quick_label">🔍 ANALYSE RAPIDE</div>
+      <div class="search-wrap" style="margin-bottom:0">
+        <input class="search-input" id="quick-search" type="text" onkeydown="if(event.key==='Enter')quickAnalyze()"/>
+        <button class="search-btn" onclick="quickAnalyze()">🔍</button>
+      </div>
+      <div id="quick-result" style="margin-top:.8rem"></div>
+    </div>
+    <div class="grid">
+      <div class="card" onclick="showPage('search')"><div class="card-ic">🔍</div><div class="card-title" data-t="c1_t">Analyser une Menace</div><div class="card-text" data-t="c1_d">URL, message ou domaine suspect. Score de risque instantané.</div></div>
+      <div class="card" onclick="showPage('threats')"><div class="card-ic">🕸️</div><div class="card-title" data-t="c2_t">Flux Dark Web</div><div class="card-text" data-t="c2_d">Menaces actives détectées concernant l'Afrique et l'Europe.</div></div>
+      <div class="card" onclick="showPage('messages')"><div class="card-ic">🔑</div><div class="card-title" data-t="c3_t">Canal Privé</div><div class="card-text" data-t="c3_d">Générez une clé unique et communiquez en confidentialité.</div></div>
+      <div class="card" onclick="showPage('veille')"><div class="card-ic">🌍</div><div class="card-title" data-t="c4_t">Veille Géopolitique</div><div class="card-text" data-t="c4_d">Carte interactive Afrique & Europe.</div></div>
+    </div>
+  </div>
+
+  <!-- SEARCH -->
+  <div class="page" id="page-search">
+    <div class="sh"><span class="sh-ic">🔍</span><div><h2 data-t="nav_analyze">Moteur d'Analyse</h2><p data-t="analyze_sub">URL · Texte · Domaine · Message suspect</p></div></div>
+    <div class="stabs">
+      <button class="stab active" onclick="setMode('analyze')" data-t="stab_analyze">🛡️ Analyser</button>
+      <button class="stab" onclick="setMode('google')" data-t="stab_google">🌐 Google</button>
+      <button class="stab" onclick="setMode('darkweb')" data-t="stab_dark">🕸️ Dark Web</button>
+    </div>
+    <div class="search-wrap">
+      <input class="search-input" id="main-search" type="text" onkeydown="if(event.key==='Enter')doSearch()"/>
+      <button class="search-btn" onclick="doSearch()">⚡</button>
+    </div>
+    <div id="analysis-result"></div>
+  </div>
+
+  <!-- DARK WEB -->
+  <div class="page" id="page-threats">
+    <div class="sh"><span class="sh-ic">🕸️</span><div><h2 data-t="nav_dark">Flux Menaces Dark Web</h2><p data-t="dark_sub">Intelligence sur les menaces actives — Afrique & Europe</p></div></div>
+    <div class="search-wrap">
+      <input class="search-input" id="threat-filter" type="text" oninput="filterThreats()"/>
+      <button class="search-btn" onclick="filterThreats()">🔍</button>
+    </div>
+    <div class="stabs">
+      <button class="stab active" onclick="filterBySev(0)" data-t="all">Toutes</button>
+      <button class="stab" onclick="filterBySev(4)" style="border-color:#CC0000;color:#FF4400" data-t="critical">🔴 Critique</button>
+      <button class="stab" onclick="filterBySev(3)" style="border-color:#884400;color:#FF8800" data-t="high">🟠 Élevé</button>
+      <button class="stab" onclick="filterBySev(2)" style="border-color:#005544;color:#00BB88" data-t="medium">🟢 Modéré</button>
+    </div>
+    <div class="threat-list" id="threat-list"><div class="loading" data-t="loading">Chargement...</div></div>
+    <hr class="divider">
+    <div class="grid" style="margin-bottom:2rem">
+      <div class="card" style="grid-column:1/-1;background:linear-gradient(135deg,var(--panel),rgba(20,0,0,0.8));border:1px solid var(--blood);cursor:default">
+        <div style="font-family:var(--fb);font-size:1.1rem;color:var(--white);margin-bottom:0.5rem" data-t="dw_qa_title">🕵️ Assistant Recherche & Q&A</div>
+        <div style="font-size:0.85rem;color:var(--sub);margin-bottom:1rem" data-t="dw_qa_desc">Posez une question sur le Dark Web ou la cybersécurité. L'assistant interroge le web pour vous.</div>
+        <div style="display:flex;gap:0.5rem">
+          <input class="fi" id="dw-qa-input" type="text" placeholder="..." data-ph="dw_qa_ph" onkeydown="if(event.key==='Enter')askDarkWeb()"/>
+          <button class="btn" onclick="askDarkWeb()" data-t="search_btn">Rechercher</button>
+        </div>
+      </div>
+    </div>
+    <div style="font-family:var(--fm);font-size:.66rem;color:var(--muted);letter-spacing:.2em;text-transform:uppercase;margin-bottom:1rem" data-t="dw_tools_title">OUTILS ET CONSEILS DE SÉCURITÉ</div>
+    <div class="grid">
+      <div class="card" onclick="openLink('https://www.torproject.org/')"><div class="card-ic">🧅</div><div class="card-title">Tor Browser</div><div class="card-text" data-t="tool_tor_d">Accès anonyme au réseau Onion.</div></div>
+      <div class="card" onclick="openLink('https://ahmia.fi/')"><div class="card-ic">🔎</div><div class="card-title">Ahmia.fi</div><div class="card-text" data-t="tool_ahmia_d">Moteur de recherche pour le Dark Web.</div></div>
+      <div class="card" style="cursor:default;border-color:var(--safe)"><div class="card-ic">🛡️</div><div class="card-title" data-t="adv_vpn_t">VPN Obligatoire</div><div class="card-text" data-t="adv_vpn_d">Masquez votre IP avant même d'ouvrir Tor.</div></div>
+      <div class="card" style="cursor:default;border-color:var(--ember)"><div class="card-ic">🚫</div><div class="card-title" data-t="adv_id_t">Identité Fantôme</div><div class="card-text" data-t="adv_id_d">Aucune donnée réelle. Jamais.</div></div>
+    </div>
+  </div>
+
+  <!-- MESSAGES -->
+  <div class="page" id="page-messages">
+    <div class="sh"><span class="sh-ic">🔑</span><div><h2 data-t="nav_msg">Messagerie Sécurisée</h2><p data-t="msg_sub">Canal privé par clé unique — Chiffrement E2E</p></div></div>
+    <div class="msg-layout">
+      <div class="msg-sidebar">
+        <div class="msg-sh"><span data-t="channels">Canaux</span><span class="new-c" onclick="openModal('inv-modal')" data-t="new_chan">+ Nouveau</span></div>
+        <div class="c-list" id="c-list">
+          <div class="c-item active" onclick="selContact(this,'Contact Alpha','SHR-4X7K')">
+            <div class="c-av">CA</div><div><div class="c-name">Contact Alpha</div><div class="c-key">SHR-4X7K</div></div>
+          </div>
+        </div>
+        <div class="key-sec">
+          <div class="key-lbl" data-t="my_key">Ma Clé Unique</div>
+          <div class="key-display" id="my-key" onclick="copyKey()">SHR-••••••</div>
+          <button class="btn sec" onclick="generateKey()" style="width:100%;padding:.38rem;font-size:.73rem" data-t="renew_key">↺ Renouveler</button>
+        </div>
+      </div>
+      <div class="msg-window">
+        <div class="msg-head">
+          <div><div class="msg-hname" id="chat-name">Contact Alpha</div><div class="msg-hkey" id="chat-key">SHR-4X7K · Canal chiffré</div></div>
+          <span class="e2e" data-t="e2e">🔒 E2E</span>
+        </div>
+        <div class="msg-body" id="msg-body">
+          <div class="bubble recv" data-t="welcome_msg">Bienvenue sur SHARINNGANNE. Canal chiffré actif.<div class="msg-time">—</div></div>
+        </div>
+        <div class="msg-footer">
+          <button class="att-btn" onclick="attachFile()">📎</button>
+          <input class="msg-inp" id="msg-inp" type="text" onkeydown="if(event.key==='Enter')sendMsg()"/>
+          <button class="send-btn" onclick="sendMsg()" data-t="send">Envoyer</button>
+        </div>
+      </div>
+    </div>
+    <div class="inv-sec">
+      <div style="font-family:var(--fb);font-size:.88rem;color:var(--white);margin-bottom:.8rem" data-t="join_title">📨 Rejoindre un canal — Entrez une Clé</div>
+      <div class="inv-row">
+        <input class="fi" id="join-key" type="text" placeholder="SHR-XXXXXX" style="text-transform:uppercase"/>
+        <button class="btn" onclick="joinByKey()" style="padding:.65rem 1.1rem" data-t="join">Rejoindre</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- VEILLE -->
+  <div class="page" id="page-veille">
+    <div class="sh"><span class="sh-ic">🌍</span><div><h2 data-t="nav_watch">Veille Géopolitique</h2><p data-t="veille_sub">Afrique & Europe — Événements & Alertes</p></div></div>
+    
+    <div class="maps-row">
+      <div class="map-card">
+        <div style="font-family:var(--fb);font-size:.9rem;color:var(--white);letter-spacing:.1em">AFRIQUE & EUROPE</div>
+        <div class="map-vis">
+          <!-- Real Unsplash Map: Europe/Africa View (Earth from Space) -->
+          <img src="https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=600&q=80" alt="Map Africa Europe" loading="lazy">
+          <div style="position:absolute;bottom:5px;right:5px;font-size:0.6rem;color:var(--crimson);background:rgba(0,0,0,0.7);padding:2px 4px;border-radius:2px">SATELLITE VIEW</div>
+        </div>
+      </div>
+      <div class="map-card">
+        <div style="font-family:var(--fb);font-size:.9rem;color:var(--white);letter-spacing:.1em" data-t="map_global">MONDE GLOBAL</div>
+        <div class="map-vis">
+          <!-- Real Unsplash Map: World Map Abstract -->
+          <img src="https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?auto=format&fit=crop&w=600&q=80" alt="World Map" loading="lazy">
+        </div>
+      </div>
+    </div>
+
+    <div style="font-family:var(--fm);font-size:.66rem;color:var(--muted);letter-spacing:.2em;text-transform:uppercase;margin-bottom:.8rem" data-t="live_alerts_title">📡 FLUX D'ALERTES EN TEMPS RÉEL</div>
+    <div class="alert-box" id="veille-alerts">
+      <div class="loading">Initialisation du flux satellite...</div>
+    </div>
+
+    <div class="travel-box">
+      <div style="font-family:var(--fb);font-size:1rem;color:var(--white);margin-bottom:1rem" data-t="travel_title">CALCULATEUR DE TRAJET & FUSEAUX</div>
+      <div style="display:flex;gap:1rem;margin-bottom:1rem;flex-wrap:wrap">
+        <div style="flex:1"><label class="fl" data-t="lbl_origin">Origine</label><select id="tc-orig" class="fi" style="background:var(--void)"><option value="">Selection...</option></select></div>
+        <div style="flex:1"><label class="fl" data-t="lbl_dest">Destination</label><select id="tc-dest" class="fi" style="background:var(--void)"><option value="">Selection...</option></select></div>
+        <div style="display:flex;align-items:flex-end"><button class="btn" onclick="calcTravel()" data-t="calc_btn">CALCULER</button></div>
+      </div>
+      <div class="grid" id="travel-res" style="display:none;margin-top:1rem;border-top:1px solid var(--border);padding-top:1rem">
+        <div class="stat-card"><div class="stat-val" id="res-dist">0 km</div><div class="stat-lbl" data-t="dist_lbl">Distance</div></div>
+        <div class="stat-card"><div class="stat-val" id="res-time">0h 00</div><div class="stat-lbl" data-t="flight_lbl">Durée Vol (estimée)</div></div>
+        <div class="stat-card"><div class="stat-val" id="res-tz">0h</div><div class="stat-lbl" data-t="time_lbl">Décalage Horaire</div></div>
+      </div>
+    </div>
+    <hr class="divider">
+    <div class="grid" style="margin-top:1.2rem">
+      <div class="card" onclick="openDisinfoModal()"><div class="card-ic">🔎</div><div class="card-title" data-t="v2_t">Désinformation & Fake News</div><div class="card-text" data-t="v2_d">Comprendre les mécanismes, pays ciblés et sources fiables (EN/FR).</div></div>
+      <div class="card" onclick="openWarModal()"><div class="card-ic">📊</div><div class="card-title" data-t="v3_t">Guerres & Prédictions</div><div class="card-text" data-t="v3_d">Analyse des conflits actifs et pays à risque pour 2026.</div></div>
+    </div>
+  </div>
+
+  <!-- RESSOURCES -->
+  <div class="page" id="page-ressources">
+    <div class="sh"><span class="sh-ic">📚</span><div><h2 data-t="nav_res">Centre de Ressources</h2><p data-t="res_sub">Actualité fiable · Cours en ligne · Formation</p></div></div>
+    <button class="chatbot-cta" onclick="openLink('https://claude.ai')">
+      <span style="font-size:1.9rem">🤖</span>
+      <div><div style="font-family:var(--fb);font-size:1.02rem;letter-spacing:.1em" data-t="chatbot_lbl">Chatbot Expert SHARINNGANNE</div><div style="font-size:.8rem;color:rgba(200,170,160,.65);margin-top:.2rem" data-t="chatbot_desc">Cybersécurité · Géopolitique · Actualités mondiales</div></div>
+      <span style="margin-left:auto;color:var(--crimson);font-size:1.3rem">→</span>
+    </button>
+    <div style="background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:1.2rem;margin-bottom:1.4rem">
+      <div style="font-family:var(--fm);font-size:.66rem;color:var(--muted);letter-spacing:.2em;text-transform:uppercase;margin-bottom:.8rem" data-t="google_label">🌐 RECHERCHE GOOGLE SÉCURISÉE</div>
+      <div style="display:flex;gap:.5rem">
+        <input class="fi" id="google-q" type="text" style="flex:1" onkeydown="if(event.key==='Enter')doGoogleSearch()"/>
+        <button class="btn" onclick="doGoogleSearch()" style="padding:.65rem 1rem" data-t="search_btn">Rechercher</button>
+      </div>
+      <div id="google-result" style="margin-top:.6rem;font-family:var(--fm);font-size:.72rem;color:var(--muted)"></div>
+    </div>
+    <div style="font-family:var(--fm);font-size:.66rem;color:var(--muted);letter-spacing:.2em;text-transform:uppercase;margin-bottom:.8rem" data-t="news_lbl">ACTUALITÉS FIABLES</div>
+    <div class="res-grid">
+      <div class="res-card" onclick="openLink('https://www.rfi.fr/fr/afrique/')"><span class="res-ic">📰</span><div><div class="res-title">RFI Afrique</div><div class="res-tag" data-t="tag_news">Actualité · Afrique</div></div></div>
+      <div class="res-card" onclick="openLink('https://www.jeuneafrique.com/')"><span class="res-ic">🌍</span><div><div class="res-title">Jeune Afrique</div><div class="res-tag" data-t="tag_pol">Politique · Économie</div></div></div>
+      <div class="res-card" onclick="openLink('https://dakaractu.com/')"><span class="res-ic">🇸🇳</span><div><div class="res-title">Dakar Actu</div><div class="res-tag">Sénégal · Actualité</div></div></div>
+      <div class="res-card" onclick="openLink('https://haveibeenpwned.com/')"><span class="res-ic">🕵️</span><div><div class="res-title">HaveIBeenPwned</div><div class="res-tag" data-t="tag_check">Vérifier ses données</div></div></div>
+      <div class="res-card" onclick="openLink('https://www.virustotal.com/')"><span class="res-ic">🦠</span><div><div class="res-title">VirusTotal</div><div class="res-tag" data-t="tag_scan">Analyser un fichier</div></div></div>
+      <div class="res-card" onclick="openLink('https://www.ssi.gouv.fr/particulier/')"><span class="res-ic">🔐</span><div><div class="res-title">ANSSI</div><div class="res-tag" data-t="tag_cyber">Guides Cybersécurité</div></div></div>
+      <div class="res-card" onclick="openLink('https://www.coursera.org/')"><span class="res-ic">🎓</span><div><div class="res-title">Coursera</div><div class="res-tag" data-t="tag_course">Formation en ligne</div></div></div>
+      <div class="res-card" onclick="openLink('https://www.freecodecamp.org/')"><span class="res-ic">💻</span><div><div class="res-title">freeCodeCamp</div><div class="res-tag" data-t="tag_dev">Dev Web gratuit</div></div></div>
+    </div>
+    <hr class="divider">
+    <div style="text-align:center;padding:1rem 0"><button class="terms-link" onclick="showScreen('cgu')" data-t="cgu_link">📜 Conditions d'Utilisation</button></div>
+  </div>
+
+  <!-- ADMIN -->
+  <div class="page" id="page-admin">
+    <div class="sh"><span class="sh-ic">⚙️</span><div><h2 data-t="nav_admin">Panel de Contrôle Admin</h2><p>usersdbsn@gmail.com — Supabase</p></div></div>
+    <div class="stat-cards">
+      <div class="stat-card"><div class="stat-val" id="st-users">—</div><div class="stat-lbl" data-t="stat_users">Utilisateurs</div></div>
+      <div class="stat-card"><div class="stat-val" id="st-active">—</div><div class="stat-lbl" data-t="stat_active">Comptes actifs</div></div>
+      <div class="stat-card"><div class="stat-val" id="st-suspended">—</div><div class="stat-lbl" data-t="stat_susp">Suspendus</div></div>
+      <div class="stat-card"><div class="stat-val" id="st-analyses">—</div><div class="stat-lbl" data-t="stat_anal">Analyses</div></div>
+    </div>
+    <div class="admin-wrap">
+      <div class="admin-toolbar">
+        <input class="admin-si" id="admin-filter" type="text" oninput="filterUsers()"/>
+        <button class="btn success sm" onclick="openModal('cu-modal')" data-t="create_acc">➕ Créer compte</button>
+        <button class="btn sec sm" onclick="loadAdminData()">↺</button>
+        <button class="btn sec sm" onclick="exportCSV()" data-t="export_csv">⬇ CSV</button>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="admin-table">
+          <thead><tr><th>#</th><th data-t="th_email">Email</th><th data-t="th_pass">Mot de passe</th><th data-t="th_key">Clé Unique</th><th data-t="th_joined">Inscription</th><th data-t="th_status">Statut</th><th data-t="th_actions">Actions</th></tr></thead>
+          <tbody id="admin-tbody"><tr><td colspan="7" style="text-align:center;padding:2rem"><span class="loading" data-t="loading">Chargement...</span></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.8rem">
+      <div style="font-family:var(--fm);font-size:.66rem;color:var(--muted);letter-spacing:.2em;text-transform:uppercase" data-t="logs_title">Journal d'Analyses</div>
+      <button class="btn sec sm" onclick="loadLogs()">↺</button>
+    </div>
+    <div id="admin-logs" style="display:flex;flex-direction:column;gap:.35rem;max-height:220px;overflow-y:auto"><div class="loading" data-t="loading">Chargement...</div></div>
+  </div>
+</div>
+</div>
+
+<!-- MODALS -->
+<div class="modal-ov" id="inv-modal">
+  <div class="modal">
+    <button class="modal-x" onclick="closeModal('inv-modal')">✕</button>
+    <div class="modal-title" data-t="modal_chan">📨 Nouveau Canal Sécurisé</div>
+    <div class="form">
+      <div><label class="fl" data-t="lbl_key">Clé du Contact</label><input class="fi" id="inv-key" type="text" placeholder="SHR-XXXXXX" style="text-transform:uppercase"/></div>
+      <div><label class="fl" data-t="lbl_name">Nom Affiché</label><input class="fi" id="inv-name" type="text"/></div>
+      <div class="ferr" id="inv-err"></div>
+    </div>
+    <div class="modal-footer"><button class="btn sec sm" onclick="closeModal('inv-modal')" data-t="cancel">Annuler</button><button class="btn sm" onclick="createChannel()" data-t="create_chan">Créer le Canal</button></div>
+  </div>
+</div>
+<div class="modal-ov" id="cu-modal">
+  <div class="modal">
+    <button class="modal-x" onclick="closeModal('cu-modal')">✕</button>
+    <div class="modal-title" data-t="create_acc">➕ Créer un Compte</div>
+    <div class="form">
+      <div><label class="fl" data-t="lbl_email">Email</label><input class="fi" id="cu-email" type="email"/></div>
+      <div><label class="fl" data-t="lbl_pass">Mot de Passe</label><input class="fi" id="cu-pass" type="text"/></div>
+      <div><label class="fl" data-t="lbl_key_opt">Clé Unique (optionnel)</label><input class="fi" id="cu-key" type="text" style="text-transform:uppercase"/></div>
+      <div class="terms-row"><input type="checkbox" id="cu-admin" style="accent-color:var(--crimson)"/><label for="cu-admin" data-t="role_admin" style="font-size:.82rem;color:var(--sub)">Rôle Admin</label></div>
+      <div class="ferr" id="cu-err"></div>
+    </div>
+    <div class="modal-footer"><button class="btn sec sm" onclick="closeModal('cu-modal')" data-t="cancel">Annuler</button><button class="btn success sm" onclick="adminCreateUser()" data-t="confirm_create">✓ Créer</button></div>
+  </div>
+</div>
+<div class="modal-ov" id="eu-modal">
+  <div class="modal">
+    <button class="modal-x" onclick="closeModal('eu-modal')">✕</button>
+    <div class="modal-title" data-t="edit_acc">✏️ Modifier le Compte</div>
+    <div class="form">
+      <input type="hidden" id="eu-orig"/>
+      <div><label class="fl" data-t="lbl_email">Email</label><input class="fi" id="eu-email" type="email"/></div>
+      <div><label class="fl" data-t="lbl_newpass2">Nouveau Mot de Passe (vide = inchangé)</label><input class="fi" id="eu-pass" type="text"/></div>
+      <div><label class="fl" data-t="lbl_key">Clé Unique</label><input class="fi" id="eu-key" type="text" style="text-transform:uppercase"/></div>
+      <div style="display:flex;gap:.8rem">
+        <div class="terms-row"><input type="checkbox" id="eu-admin" style="accent-color:var(--crimson)"/><label for="eu-admin" data-t="role_admin" style="font-size:.82rem;color:var(--sub)">Admin</label></div>
+        <div class="terms-row"><input type="checkbox" id="eu-active" checked style="accent-color:var(--safe)"/><label for="eu-active" data-t="active_lbl" style="font-size:.82rem;color:var(--sub)">Actif</label></div>
+      </div>
+      <div class="ferr" id="eu-err"></div>
+    </div>
+    <div class="modal-footer"><button class="btn sec sm" onclick="closeModal('eu-modal')" data-t="cancel">Annuler</button><button class="btn warn-btn sm" onclick="adminSaveUser()" data-t="save">💾 Sauvegarder</button></div>
+  </div>
+</div>
+<div class="modal-ov" id="disinfo-modal"><div class="modal" style="max-width:600px"><button class="modal-x" onclick="closeModal('disinfo-modal')">✕</button><div class="modal-title">🔎 DÉSINFORMATION & MEDIA INTELLIGENCE</div><div id="disinfo-content" style="font-size:.85rem;line-height:1.6"></div></div></div>
+<div class="modal-ov" id="war-modal"><div class="modal" style="max-width:600px"><button class="modal-x" onclick="closeModal('war-modal')">✕</button><div class="modal-title">📊 CONFLITS & PRÉDICTIONS DE RISQUE</div><div id="war-content" style="font-size:.85rem;line-height:1.6"></div></div></div>
+<div class="modal-ov" id="del-modal">
+  <div class="modal" style="max-width:380px;text-align:center">
+    <button class="modal-x" onclick="closeModal('del-modal')">✕</button>
+    <div style="font-size:2.5rem;margin-bottom:1rem">⚠️</div>
+    <div class="modal-title" data-t="confirm_del">Confirmer la suppression</div>
+    <p style="font-size:.88rem;color:var(--sub);margin-bottom:1.5rem" data-t="del_msg">Supprimer définitivement :<br><strong id="del-email-lbl" style="color:var(--ember);font-family:var(--fm)"></strong></p>
+    <div class="modal-footer" style="justify-content:center"><button class="btn sec sm" onclick="closeModal('del-modal')" data-t="cancel">Annuler</button><button class="btn danger sm" onclick="confirmDelete()" data-t="delete">🗑 Supprimer</button></div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════
+// TRADUCTIONS COMPLÈTES FR / EN / WO
+// ══════════════════════════════════════════
+const LANGS = {
+  fr: {
+    tagline:'Voir · Prévoir · Protéger', tab_login:'Connexion', tab_register:'Inscription',
+    lbl_email:'Adresse Email', lbl_pass:'Mot de Passe', lbl_newpass:'Créer un Mot de Passe',
+    lbl_newpass2:'Nouveau Mot de Passe (vide = inchangé)', lbl_confirm:'Confirmer',
+    lbl_key:'Clé du Contact', lbl_name:'Nom Affiché', lbl_key_opt:'Clé Unique (optionnel)',
+    terms_label:"J'accepte les Conditions d'Utilisation.",
+    btn_activate:'Activer le Sharingan', btn_join:'Rejoindre SHARINNGANNE',
+    cgu_link:'📜 Conditions d\'Utilisation', back:'Retour', back_home:'← Retour à l\'accueil',
+    nav_shield:'🛡️ Bouclier', nav_analyze:'🔍 Analyser', nav_dark:'🕸️ Dark Web',
+    nav_msg:'🔑 Messages', nav_watch:'🌍 Veille', nav_res:'📚 Ressources', nav_admin:'⚙️ Admin',
+    logout:'Déconnexion',
+    page_shield:'Bouclier Visionnaire', page_shield_sub:'Premier rempart contre les menaces numériques',
+    shield_on:'Bouclier Actif', shield_desc:'Protection activée · Supabase connecté · Moteur d\'analyse opérationnel',
+    quick_label:'🔍 ANALYSE RAPIDE',
+    c1_t:'Analyser une Menace', c1_d:'URL, message ou domaine suspect. Score de risque instantané.',
+    c2_t:'Flux Dark Web', c2_d:'Menaces actives détectées concernant l\'Afrique et l\'Europe.',
+    c3_t:'Canal Privé', c3_d:'Générez une clé unique et communiquez en confidentialité.',
+    c4_t:'Veille Géopolitique', c4_d:'Carte interactive Afrique & Europe.',
+    analyze_sub:'URL · Texte · Domaine · Message suspect',
+    stab_analyze:'🛡️ Analyser', stab_google:'🌐 Google', stab_dark:'🕸️ Dark Web',
+    dark_sub:'Intelligence sur les menaces actives — Afrique & Europe',
+    all:'Toutes', critical:'🔴 Critique', high:'🟠 Élevé', medium:'🟢 Modéré',
+    msg_sub:'Canal privé par clé unique — Chiffrement E2E',
+    channels:'Canaux', new_chan:'+ Nouveau', my_key:'Ma Clé Unique', renew_key:'↺ Renouveler',
+    send:'Envoyer', join_title:'📨 Rejoindre un canal — Entrez une Clé', join:'Rejoindre',
+    veille_sub:'Afrique & Europe — Événements & Alertes', map_soon:'Carte Interactive — Leaflet.js en cours',
+    live_alerts_title:'📡 FLUX D\'ALERTES EN TEMPS RÉEL',
+    v2_t:'Désinformation & Fake News', v2_d:'Mécanismes, cibles africaines et sources fiables.',
+    v3_t:'Guerres & Prédictions', v3_d:'Conflits actifs et analyse prédictive des risques.',
+    res_sub:'Actualité fiable · Cours en ligne · Formation',
+    chatbot_lbl:'Chatbot Expert SHARINNGANNE', chatbot_desc:'Cybersécurité · Géopolitique · Actualités mondiales',
+    google_label:'🌐 RECHERCHE GOOGLE SÉCURISÉE', search_btn:'Rechercher',
+    news_lbl:'ACTUALITÉS FIABLES',
+    tag_news:'Actualité · Afrique', tag_pol:'Politique · Économie', tag_check:'Vérifier ses données',
+    tag_scan:'Analyser un fichier', tag_cyber:'Guides Cybersécurité', tag_course:'Formation en ligne', tag_dev:'Dev Web gratuit',
+    stat_users:'Utilisateurs', stat_active:'Comptes actifs', stat_susp:'Suspendus', stat_anal:'Analyses',
+    create_acc:'➕ Créer compte', export_csv:'⬇ CSV',
+    th_email:'Email', th_pass:'Mot de passe', th_key:'Clé Unique', th_joined:'Inscription', th_status:'Statut', th_actions:'Actions',
+    logs_title:'Journal d\'Analyses',
+    modal_chan:'📨 Nouveau Canal Sécurisé', cancel:'Annuler', create_chan:'Créer le Canal',
+    role_admin:'Rôle Admin', active_lbl:'Actif', confirm_create:'✓ Créer',
+    edit_acc:'✏️ Modifier le Compte', save:'💾 Sauvegarder',
+    confirm_del:'Confirmer la suppression', del_msg:'Supprimer définitivement ce compte ?', delete:'🗑 Supprimer',
+    cgu_title:'Conditions d\'Utilisation',
+    cgu_a1_h:'Présentation du service', cgu_a1_p:'SHARINNGANNE est une plateforme de protection cybersécurité développée par Seydou Bakhayokho.',
+    cgu_a2_h:'Acceptation', cgu_a2_p:'En cochant la case lors de votre inscription, vous acceptez ces termes.',
+    cgu_a2_w:'⚠️ Sans acceptation, vous ne pouvez pas utiliser SHARINNGANNE.',
+    cgu_a3_h:'Inscription', cgu_a3_l1:'Email fonctionnel et mot de passe d\'au moins 8 caractères requis.',
+    cgu_a3_l2:'Vous êtes responsable de la confidentialité de vos identifiants.',
+    cgu_a3_l3:'Une clé unique SHR-XXXXXX vous est attribuée.',
+    cgu_a4_h:'Protection des données', cgu_a4_w:'🔒 Données stockées sur Supabase. Seul l\'admin a accès.',
+    cgu_a4_l1:'Aucune donnée vendue ou partagée.', cgu_a4_l2:'Suppression possible à tout moment.',
+    cgu_a5_h:'Usage acceptable', cgu_a5_l1:'Utilisation légale et éthique uniquement.',
+    cgu_a5_l2:'Interdiction de diffuser des contenus illicites.',
+    cgu_a5_l3:'Interdiction d\'inspecter ou copier le code source.',
+    cgu_a5_w:'🚫 Tout piratage = suspension immédiate.',
+    cgu_a6_h:'Droits', cgu_a6_l1:'Droit d\'accès à vos données.',
+    cgu_a6_l2:'Droit de rectification.', cgu_a6_l3:'Droit à l\'effacement.',
+    dw_qa_title: '🕵️ Assistant Dark Web', dw_qa_desc: 'Posez vos questions sur le Dark Web. Réponses via Google.', dw_qa_ph: 'Ex: Comment accéder à Tor ?',
+    dw_tools_title: 'OUTILS & CONSEILS', tool_tor_d: 'Navigateur pour le réseau Onion.', tool_ahmia_d: 'Moteur de recherche Onion.',
+    adv_vpn_t: 'VPN + Tor', adv_vpn_d: 'Masquez votre IP réelle.',
+    adv_id_t: 'Identité Fictive', adv_id_d: 'Ne donnez jamais votre vrai nom.',
+    cgu_a7_h:'Juridiction', cgu_a7_p:'Droit sénégalais. Tribunaux de Dakar.',
+    cgu_version: "Version 1.0 · Mars 2026 · Dakar, Sénégal", contact_lbl: "Contact",
+    footer_copy: "© 2026 SHARINNGANNE — Seydou Bakhayokho", badge_admin: "ADMIN",
+    loading: "Chargement...", no_threats: "Aucune menace", no_users: "Aucun utilisateur",
+    map_global: "MONDE GLOBAL", travel_title: "CALCULATEUR DE TRAJET & FUSEAUX",
+    lbl_origin: "Origine", lbl_dest: "Destination", calc_btn: "CALCULER",
+    dist_lbl: "Distance", flight_lbl: "Durée Vol (estimée)", time_lbl: "Décalage Horaire",
+    no_logs: "Aucune analyse enregistrée", secure_channel: "Canal chiffré", e2e: "🔒 E2E",
+    welcome_msg: "Bienvenue sur SHARINNGANNE. Canal chiffré actif.",
+    ph_email: "votre@email.com", ph_pass: "••••••••", ph_min8: "Min. 8 caractères", ph_repeat: "Répétez le mot de passe",
+    recs_title: "RECOMMANDATIONS", actions_title: "ACTIONS", dw_match_title: "CORRESPONDANCES DARK WEB",
+    analyzing: "Analyse en cours...", suspended: "Suspendu", yes: "Oui", no: "Non",
+    page_title: "SHARINNGANNE — Voir. Prévoir. Protéger.",
+    art_01: "Article 01", art_02: "Article 02", art_03: "Article 03", art_04: "Article 04",
+    art_05: "Article 05", art_06: "Article 06", art_07: "Article 07",
+    hw_title:'⚠ INTRUSION DÉTECTÉE ⚠', hw_msg:'Le Sharingan vous observe.\nToute tentative d\'inspection est tracée.',
+    search_placeholder:'URL, texte ou domaine à analyser...',
+    google_placeholder:'Votre recherche Google...',
+    dark_placeholder:'Filtrer les menaces...',
+    quick_placeholder:'URL, message suspect ou domaine à analyser...',
+    filter_placeholder:'🔍 Rechercher un utilisateur...',
+    msg_placeholder:'Message sécurisé...',
+  },
+  en: {
+    tagline:'See · Predict · Protect', tab_login:'Login', tab_register:'Sign Up',
+    lbl_email:'Email Address', lbl_pass:'Password', lbl_newpass:'Create Password',
+    lbl_newpass2:'New Password (empty = unchanged)', lbl_confirm:'Confirm',
+    lbl_key:'Contact Key', lbl_name:'Display Name', lbl_key_opt:'Unique Key (optional)',
+    terms_label:'I accept the Terms of Use.',
+    btn_activate:'Activate the Sharingan', btn_join:'Join SHARINNGANNE',
+    cgu_link:'📜 Terms of Use', back:'Back', back_home:'← Back to Home',
+    nav_shield:'🛡️ Shield', nav_analyze:'🔍 Analyze', nav_dark:'🕸️ Dark Web',
+    nav_msg:'🔑 Messages', nav_watch:'🌍 Watch', nav_res:'📚 Resources', nav_admin:'⚙️ Admin',
+    logout:'Sign Out',
+    page_shield:'Visionary Shield', page_shield_sub:'Your first line of defense against digital threats',
+    shield_on:'Shield Active', shield_desc:'Protection enabled · Supabase connected · Analysis engine operational',
+    quick_label:'🔍 QUICK ANALYSIS',
+    c1_t:'Analyze a Threat', c1_d:'Suspicious URL, message or domain. Instant risk score.',
+    c2_t:'Dark Web Feed', c2_d:'Active threats detected targeting Africa and Europe.',
+    c3_t:'Private Channel', c3_d:'Generate a unique key and communicate confidentially.',
+    c4_t:'Geopolitical Watch', c4_d:'Interactive map of Africa & Europe.',
+    analyze_sub:'URL · Text · Domain · Suspicious Message',
+    stab_analyze:'🛡️ Analyze', stab_google:'🌐 Google', stab_dark:'🕸️ Dark Web',
+    dark_sub:'Active threat intelligence — Africa & Europe',
+    all:'All', critical:'🔴 Critical', high:'🟠 High', medium:'🟢 Medium',
+    msg_sub:'Private channel by unique key — E2E Encryption',
+    channels:'Channels', new_chan:'+ New', my_key:'My Unique Key', renew_key:'↺ Renew',
+    send:'Send', join_title:'📨 Join a channel — Enter a Key', join:'Join',
+    veille_sub:'Africa & Europe — Events & Alerts', map_soon:'Interactive Map — Leaflet.js integration in progress',
+    live_alerts_title:'📡 REAL-TIME ALERT FEED',
+    v2_t:'Disinformation & Fake News', v2_d:'Mechanisms, African targets and reliable sources.',
+    v3_t:'Wars & Predictions', v3_d:'Active conflicts and predictive risk analysis.',
+    res_sub:'Reliable news · Online courses · Training',
+    chatbot_lbl:'SHARINNGANNE Expert Chatbot', chatbot_desc:'Cybersecurity · Geopolitics · World news',
+    google_label:'🌐 SECURE GOOGLE SEARCH', search_btn:'Search',
+    news_lbl:'RELIABLE NEWS SOURCES',
+    tag_news:'News · Africa', tag_pol:'Politics · Economy', tag_check:'Check your data',
+    tag_scan:'Scan a file', tag_cyber:'Cybersecurity Guides', tag_course:'Online training', tag_dev:'Free Web Dev',
+    stat_users:'Users', stat_active:'Active accounts', stat_susp:'Suspended', stat_anal:'Analyses',
+    create_acc:'➕ Create account', export_csv:'⬇ CSV',
+    th_email:'Email', th_pass:'Password', th_key:'Unique Key', th_joined:'Joined', th_status:'Status', th_actions:'Actions',
+    logs_title:'Analysis Logs',
+    modal_chan:'📨 New Secure Channel', cancel:'Cancel', create_chan:'Create Channel',
+    role_admin:'Admin Role', active_lbl:'Active', confirm_create:'✓ Create',
+    edit_acc:'✏️ Edit Account', save:'💾 Save',
+    confirm_del:'Confirm deletion', del_msg:'Permanently delete this account?', delete:'🗑 Delete',
+    cgu_title:'Terms of Use',
+    cgu_a1_h:'About the service', cgu_a1_p:'SHARINNGANNE is a cybersecurity protection platform developed by Seydou Bakhayokho.',
+    cgu_a2_h:'Acceptance', cgu_a2_p:'By checking the box during registration, you accept these terms.',
+    cgu_a2_w:'⚠️ Without acceptance, you cannot use SHARINNGANNE.',
+    cgu_a3_h:'Registration', cgu_a3_l1:'A valid email and password of at least 8 characters are required.',
+    cgu_a3_l2:'You are responsible for keeping your credentials confidential.',
+    cgu_a3_l3:'A unique SHR-XXXXXX key is assigned to you.',
+    cgu_a4_h:'Data Protection', cgu_a4_w:'🔒 Data stored on Supabase. Only the admin has access.',
+    cgu_a4_l1:'No data sold or shared.', cgu_a4_l2:'Deletion possible at any time.',
+    cgu_a5_h:'Acceptable Use', cgu_a5_l1:'Legal and ethical use only.',
+    cgu_a5_l2:'Prohibited: sharing illegal content.',
+    cgu_a5_l3:'Prohibited: inspecting or copying the source code.',
+    cgu_a5_w:'🚫 Any hacking attempt = immediate suspension.',
+    cgu_a6_h:'Rights', cgu_a6_l1:'Right to access your data.',
+    cgu_a6_l2:'Right to rectification.', cgu_a6_l3:'Right to erasure.',
+    dw_qa_title: '🕵️ Dark Web Assistant', dw_qa_desc: 'Ask questions about the Dark Web. Answers via Google.', dw_qa_ph: 'Ex: How to access Tor?',
+    dw_tools_title: 'TOOLS & ADVICE', tool_tor_d: 'Browser for the Onion network.', tool_ahmia_d: 'Onion search engine.',
+    adv_vpn_t: 'VPN + Tor', adv_vpn_d: 'Hide your real IP.',
+    adv_id_t: 'Fake Identity', adv_id_d: 'Never give your real name.',
+    cgu_a7_h:'Jurisdiction', cgu_a7_p:'Senegalese law. Courts of Dakar.',
+    cgu_version: "Version 1.0 · March 2026 · Dakar, Senegal", contact_lbl: "Contact",
+    footer_copy: "© 2026 SHARINNGANNE — Seydou Bakhayokho", badge_admin: "ADMIN",
+    loading: "Loading...", no_threats: "No threats", no_users: "No users",
+    map_global: "GLOBAL WORLD", travel_title: "TRAVEL & TIMEZONE CALCULATOR",
+    lbl_origin: "Origin", lbl_dest: "Destination", calc_btn: "CALCULATE",
+    dist_lbl: "Distance", flight_lbl: "Flight Duration (est.)", time_lbl: "Time Difference",
+    no_logs: "No analysis logs", secure_channel: "Encrypted channel", e2e: "🔒 E2E",
+    welcome_msg: "Welcome to SHARINNGANNE. Encrypted channel active.",
+    ph_email: "your@email.com", ph_pass: "••••••••", ph_min8: "Min. 8 chars", ph_repeat: "Repeat password",
+    recs_title: "RECOMMENDATIONS", actions_title: "ACTIONS", dw_match_title: "DARK WEB MATCHES",
+    analyzing: "Analyzing...", suspended: "Suspended", yes: "Yes", no: "No",
+    page_title: "SHARINNGANNE — See. Predict. Protect.",
+    art_01: "Article 01", art_02: "Article 02", art_03: "Article 03", art_04: "Article 04",
+    art_05: "Article 05", art_06: "Article 06", art_07: "Article 07",
+    hw_title:'⚠ INTRUSION DETECTED ⚠', hw_msg:'The Sharingan is watching you.\nAny inspection attempt is tracked.',
+    search_placeholder:'Enter a URL, text or domain to analyze...',
+    google_placeholder:'Your Google search...',
+    dark_placeholder:'Filter threats...',
+    quick_placeholder:'URL, suspicious message or domain...',
+    filter_placeholder:'🔍 Search a user...',
+    msg_placeholder:'Secure message...',
+  },
+  wo: {
+    tagline:'Gis · Xam · Bëgg', tab_login:'Dugg', tab_register:'Bind',
+    lbl_email:'Aadresse Email', lbl_pass:'Diggël bi', lbl_newpass:'Bind diggël',
+    lbl_newpass2:'Diggël bu bees (dëgër = inchangé)', lbl_confirm:'Sëtu',
+    lbl_key:'Cléé bi', lbl_name:'Topp bi', lbl_key_opt:'Cléé yu dëkk (optionnel)',
+    terms_label:'Dégg naa yëgël yi.',
+    btn_activate:'Yekk Sharingan bi', btn_join:'Dugg ci SHARINNGANNE',
+    cgu_link:'📜 Yëgël yi', back:'Dellu', back_home:'← Dellu ci kanam',
+    nav_shield:'🛡️ Defar', nav_analyze:'🔍 Jëfandikoo', nav_dark:'🕸️ Dark Web',
+    nav_msg:'🔑 Xibaar', nav_watch:'🌍 Xiitaan', nav_res:'📚 Yéléem', nav_admin:'⚙️ Admin',
+    logout:'Génn',
+    page_shield:'Defar Visionnaire', page_shield_sub:'Xarit bu njëkk ak menaces numériques',
+    shield_on:'Defar Dafa Dox', shield_desc:'Protection dafa dox · Supabase connecté',
+    quick_label:'🔍 JËFANDIKOO GAAW',
+    c1_t:'Jëfandikoo Menace', c1_d:'URL, xorom walla domaine. Score bi gaaw.',
+    c2_t:'Dark Web yi', c2_d:'Menaces yi ci Afrique ak Europe.',
+    c3_t:'Canal Prive', c3_d:'Bind cléé bu dëkk, wax ak xarit yi.',
+    c4_t:'Xiitaan Géopolitique', c4_d:'Carte Afrique & Europe.',
+    analyze_sub:'URL · Xorom · Domaine',
+    stab_analyze:'🛡️ Jëfandikoo', stab_google:'🌐 Google', stab_dark:'🕸️ Dark Web',
+    dark_sub:'Menaces yi — Afrique & Europe',
+    all:'Yëpp', critical:'🔴 Critique', high:'🟠 Dëgëre', medium:'🟢 Tangaay',
+    msg_sub:'Canal prive ak cléé — Chiffrement E2E',
+    channels:'Canaux', new_chan:'+ Bees', my_key:'Sa Cléé', renew_key:'↺ Renouvelé',
+    send:'Yónnee', join_title:'📨 Dugg canal — Bind Cléé bi', join:'Dugg',
+    veille_sub:'Afrique & Europe — Ñakk ak xibaar',
+    map_soon:'Carte Interactif — Intégration ci kanam',
+    live_alerts_title:'📡 XIBAAR YU GAAW (LIVE)',
+    v2_t:'Désinformation', v2_d:'Naka lañuy naxee nit ñi & Xibaar yu dëgg.',
+    v3_t:'Xare & Xiitaan', v3_d:'Réew yu am coow & Lim yi.',
+    res_sub:'Xibaar ju dëgg · Formation',
+    chatbot_lbl:'Chatbot Expert SHARINNGANNE', chatbot_desc:'Cybersécurité · Géopolitique · Xibaar',
+    google_label:'🌐 YËGLE CI GOOGLE', search_btn:'Yëgle',
+    news_lbl:'XIBAAR YU DËGG',
+    tag_news:'Xibaar · Afrique', tag_pol:'Politique · Économie', tag_check:'Seet sa données',
+    tag_scan:'Jëfandikoo fichier', tag_cyber:'Cybersécurité', tag_course:'Formation', tag_dev:'Dev Web',
+    stat_users:'Utilisateurs', stat_active:'Comptes actifs', stat_susp:'Suspendus', stat_anal:'Analyses',
+    create_acc:'➕ Bind compte', export_csv:'⬇ CSV',
+    th_email:'Email', th_pass:'Diggël', th_key:'Cléé', th_joined:'Inscription', th_status:'Statut', th_actions:'Actions',
+    logs_title:'Journal yi',
+    modal_chan:'📨 Canal Sécurisé bu Bees', cancel:'Bañ', create_chan:'Bind Canal bi',
+    role_admin:'Rôle Admin', active_lbl:'Dox', confirm_create:'✓ Bind',
+    edit_acc:'✏️ Soppiku Compte', save:'💾 Denc',
+    confirm_del:'Soppiku Bëgël', del_msg:'Wëcciku compte bi?', delete:'🗑 Yáq',
+    cgu_title:'Yëgël Jëfandikoo',
+    cgu_a1_h:'Présentation', cgu_a1_p:'SHARINNGANNE dafa platforme cybersécurité, Seydou Bakhayokho moo ko def.',
+    cgu_a2_h:'Acceptation', cgu_a2_p:'Bu nga sëtu, danga dëgg yëgël yi.',
+    cgu_a2_w:'⚠️ Bu nga bañ, dinga mën jëfandikoo SHARINNGANNE.',
+    cgu_a3_h:'Inscription', cgu_a3_l1:'Email bu dëgg ak diggël 8 caractères requis.',
+    cgu_a3_l2:'Yow mooy responsable sa identifiants.',
+    cgu_a3_l3:'Cléé SHR-XXXXXX dinañ la jox.',
+    cgu_a4_h:'Données yi', cgu_a4_w:'🔒 Données yi ci Supabase. Admin rekk moo ko xam.',
+    cgu_a4_l1:'Données yi waxul.', cgu_a4_l2:'Mëna dem baat.',
+    cgu_a5_h:'Jëfandikoo bu baax', cgu_a5_l1:'Jëfandikoo légal rekk.',
+    cgu_a5_l2:'Interdiction: contenu illicite.', cgu_a5_l3:'Interdiction: seet code bi.',
+    cgu_a5_w:'🚫 Hack = suspension gaaw gaaw.',
+    cgu_a6_h:'Droits', cgu_a6_l1:'Droit access données yi.',
+    cgu_a6_l2:'Droit rectification.', cgu_a6_l3:'Droit effacement.',
+    dw_qa_title: '🕵️ Dimbal Dark Web', dw_qa_desc: 'Laajal ci Dark Web. Tontu yi ci Google.', dw_qa_ph: 'Ex: Naka lañuy dugge Tor?',
+    dw_tools_title: 'JUMTUKAY & DIGLÉ', tool_tor_d: 'Browser ngir duggu Onion.', tool_ahmia_d: 'Seetukaay Onion.',
+    adv_vpn_t: 'VPN + Tor', adv_vpn_d: 'Nëbb sa IP dëgg.',
+    adv_id_t: 'Tur bu du dëgg', adv_id_d: 'Bul joxe sa tur dëgg.',
+    cgu_a7_h:'Juridiction', cgu_a7_p:'Droit sénégalais. Tribunaux Dakar.',
+    cgu_version: "Version 1.0 · Maars 2026 · Dakar, Senegal", contact_lbl: "Jokko",
+    footer_copy: "© 2026 SHARINNGANNE — Seydou Bakhayokho", badge_admin: "ADMIN",
+    loading: "Mingiy yeb...", no_threats: "Benn menace amul", no_users: "Kenn nekkul fi",
+    map_global: "ÀDDUNA BI", travel_title: "XAYMA YOONU TUKKI & WAXTU",
+    lbl_origin: "Foy jogé", lbl_dest: "Foy dem", calc_btn: "XAYMA",
+    dist_lbl: "Soriway", flight_lbl: "Diru Ropplaan", time_lbl: "Wuute Waxtu",
+    no_logs: "Benn gëstu amul", secure_channel: "Canal bu ñu aar", e2e: "🔒 E2E",
+    welcome_msg: "Dalal jamm ci SHARINNGANNE. Canal bi dox na.",
+    ph_email: "sa@email.com", ph_pass: "••••••••", ph_min8: "8 baat", ph_repeat: "Bindaat ko",
+    recs_title: "DIGLÉ YI", actions_title: "JËF YI", dw_match_title: "DARK WEB YI",
+    analyzing: "Mingiy saytu...", suspended: "Teye nañu ko", yes: "Waaw", no: "Déedét",
+    page_title: "SHARINNGANNE — Gis. Xam. Bëgg.",
+    art_01: "Dogal 01", art_02: "Dogal 02", art_03: "Dogal 03", art_04: "Dogal 04",
+    art_05: "Dogal 05", art_06: "Dogal 06", art_07: "Dogal 07",
+    hw_title:'⚠ INTRUSION DÉTECTÉE ⚠', hw_msg:'Sharingan bi dafa la xool.\nXam na sa activité.',
+    search_placeholder:'URL, xorom walla domaine...',
+    google_placeholder:'Sa yëgle Google...',
+    dark_placeholder:'Seet menaces yi...',
+    quick_placeholder:'URL, xorom walla domaine...',
+    filter_placeholder:'🔍 Seet utilisateur...',
+    msg_placeholder:'Xibaar sécurisé...',
+  }
+};
+
+let currentLang = 'fr';
+
+function setLang(l) {
+  currentLang = l;
+  const T = LANGS[l] || LANGS.fr;
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.textContent === l.toUpperCase()));
+  // Traduire tous les éléments data-t
+  document.querySelectorAll('[data-t]').forEach(el => {
+    const key = el.getAttribute('data-t');
+    if (T[key] !== undefined) el.textContent = T[key];
+  });
+  // Handle Placeholders via data-ph
+  document.querySelectorAll('[data-ph]').forEach(el => {
+    const k = el.getAttribute('data-ph');
+    if (T[k] !== undefined) el.placeholder = T[k];
+  });
+  // Handle Page Title
+  if(T.page_title) document.title = T.page_title;
+  // Handle existing specific IDs
+  // Placeholders
+  const qs = document.getElementById('quick-search');
+  const ms = document.getElementById('main-search');
+  const tf = document.getElementById('threat-filter');
+  const af = document.getElementById('admin-filter');
+  const mi = document.getElementById('msg-inp');
+  const dwqa = document.getElementById('dw-qa-input');
+  const gq = document.getElementById('google-q');
+  if (qs) qs.placeholder = T.quick_placeholder || '';
+  if (ms) ms.placeholder = T.search_placeholder || '';
+  if (tf) tf.placeholder = T.dark_placeholder || '';
+  if (af) af.placeholder = T.filter_placeholder || '';
+  if (mi) mi.placeholder = T.msg_placeholder || '';
+  if (gq) gq.placeholder = T.google_placeholder || '';
+  if (dwqa) dwqa.placeholder = T.dw_qa_ph || '';
+  // Hack warning
+  const hwt = document.getElementById('hw-title');
+  const hwm = document.getElementById('hw-msg');
+  if (hwt) hwt.textContent = T.hw_title || '';
+  if (hwm) hwm.innerHTML = (T.hw_msg || '').replace(/\n/g,'<br>');
+  // html lang
+  document.documentElement.lang = l;
+}
+
+// ══════════════════════════════════════════
+// SUPABASE + CONSTANTES
+// ══════════════════════════════════════════
+const SUPABASE_URL  = 'https://fupsykyeofaawjekzfcz.supabase.co';
+const SUPABASE_ANON = 'sb_publishable_MspKCQ6Vt4h3OEdILtfQ6Q_78gKZtu2';
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON);
+
+const ADMIN_EMAIL = 'seydoubakhayokho1@gmail.com';
+const ADMIN_PASS  = 'sharinnganne';
+const API         = 'http://localhost:3000/api';
+
+let currentUser = null, currentToken = null;
+let searchMode = 'analyze', allThreats = [], allUsers = [];
+let currentChan = 'SHR-4X7K', pendingDel = null;
+
+// ══════════════════════════════════════════
+// SÉCURITÉ ANTI-INSPECTION
+// ══════════════════════════════════════════
+(function securityShield(){
+  let devCount = 0;
+  document.addEventListener('contextmenu', e => { e.preventDefault(); triggerWarning(); });
+  document.addEventListener('keydown', e => {
+    const k = e.key?.toUpperCase();
+    const blocked = (e.ctrlKey && e.shiftKey && ['I','J','C','K'].includes(k)) ||
+      (e.ctrlKey && ['U','S','A','P'].includes(k)) ||
+      (e.metaKey && e.altKey && ['I','J'].includes(k)) ||
+      e.key === 'F12';
+    if (blocked) { e.preventDefault(); e.stopPropagation(); triggerWarning(); return false; }
+  }, true);
+  setInterval(() => {
+    const wd = window.outerWidth - window.innerWidth;
+    const hd = window.outerHeight - window.innerHeight;
+    if (wd > 160 || hd > 160) { devCount++; if (devCount >= 2) triggerWarning(); }
+    else devCount = 0;
+  }, 1000);
+  setInterval(() => {
+    const s = performance.now(); debugger;
+    if (performance.now() - s > 100) triggerWarning();
+  }, 3000);
+  document.addEventListener('copy', e => { if (!isFocus()) e.preventDefault(); });
+  document.addEventListener('cut',  e => { if (!isFocus()) e.preventDefault(); });
+  document.addEventListener('dragstart', e => e.preventDefault());
+  document.addEventListener('selectstart', e => { if (!isFocus()) e.preventDefault(); });
+  function isFocus() { const t = document.activeElement?.tagName; return t==='INPUT'||t==='TEXTAREA'; }
+})();
+
+let warnActive = false;
+function triggerWarning() {
+  if (warnActive) return; warnActive = true;
+  const ov = document.getElementById('hack-warning');
+  const ct = document.getElementById('hw-count');
+  ov.classList.add('show'); let n = 10;
+  const t = setInterval(() => { n--; ct.textContent = n; if (n <= 0) { clearInterval(t); ov.classList.remove('show'); warnActive = false; } }, 1000);
+}
+
+// ══════════════════════════════════════════
+// CURSOR
+// ══════════════════════════════════════════
+const cur = document.getElementById('cur'), curDot = document.getElementById('cur-dot');
+document.addEventListener('mousemove', e => {
+  cur.style.left = e.clientX+'px'; cur.style.top = e.clientY+'px';
+  curDot.style.left = e.clientX+'px'; curDot.style.top = e.clientY+'px';
+});
+document.addEventListener('mousedown', () => cur.style.transform = 'translate(-50%,-50%) scale(.65)');
+document.addEventListener('mouseup',   () => cur.style.transform = 'translate(-50%,-50%) scale(1)');
+
+// ══════════════════════════════════════════
+// TOAST
+// ══════════════════════════════════════════
+function toast(msg, dur=2800){
+  const el=document.getElementById('toast'); el.textContent=msg; el.classList.add('show');
+  clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('show'),dur);
+}
+
+// ══════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════
+function showScreen(n){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(n+'-screen').classList.add('active');
+  window.scrollTo(0,0);
+}
+function showPage(n){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+n)?.classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b=>{if(b.getAttribute('onclick')?.includes("'"+n+"'"))b.classList.add('active');});
+  const mobNav = document.getElementById('topbar-mobile-nav');
+  const burger = document.getElementById('burger-btn');
+  if(mobNav && burger && mobNav.classList.contains('open')){
+    mobNav.classList.remove('open');
+    burger.classList.remove('open');
+  }
+  if(n==='threats')loadThreats();
+  if(n==='veille')initVeilleFeed();
+  if(n==='admin')loadAdminData();
+}
+function toggleMobileNav(){
+  const mobNav = document.getElementById('topbar-mobile-nav');
+  const burger = document.getElementById('burger-btn');
+  if(!mobNav || !burger)return;
+  const isOpen = mobNav.classList.toggle('open');
+  burger.classList.toggle('open', isOpen);
+}
+function openModal(id){document.getElementById(id).classList.add('active');}
+function closeModal(id){document.getElementById(id).classList.remove('active');}
+document.querySelectorAll('.modal-ov').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('active');}));
+function openLink(url){window.open(url,'_blank');}
+
+// ══════════════════════════════════════════
+// BASE DE DONNÉES DÉMO (localStorage)
+// ══════════════════════════════════════════
+function getDB(){ return JSON.parse(localStorage.getItem('shr5_db')||'{}'); }
+function saveDB(db){ localStorage.setItem('shr5_db', JSON.stringify(db)); }
+function initAdmin(){
+  const db = getDB();
+  // Toujours forcer le compte admin correct
+  db[ADMIN_EMAIL] = {
+    email: ADMIN_EMAIL,
+    password: ADMIN_PASS,
+    unique_key: 'SHR-ADMN01',
+    is_admin: true,
+    active: true,
+    joined: '2026-01-01'
+  };
+  saveDB(db);
+  return db;
+}
+
+// ══════════════════════════════════════════
+// API HELPER
+// ══════════════════════════════════════════
+async function api(path, opts={}){
+  const headers={'Content-Type':'application/json'};
+  if(currentToken) headers['Authorization']='Bearer '+currentToken;
+  try{
+    const res = await fetch(API+path, {...opts, headers:{...headers,...(opts.headers||{})}});
+    if(!res.ok){ const d=await res.json().catch(()=>({})); throw new Error(d.error||'Erreur API'); }
+    return res.json();
+  }catch(e){
+    if(e.message.includes('fetch')||e.message.includes('Failed')||e.message.includes('NetworkError')){
+      return demoMode(path, opts);
+    }
+    throw e;
+  }
+}
+
+function demoMode(path, opts){
+  const db = getDB();
+  const body = opts.body ? JSON.parse(opts.body) : {};
+
+  if(path==='/auth/login'){
+    const u = db[body.email];
+    if(!u) throw new Error('Email introuvable');
+    if(u.password !== body.password) throw new Error('Mot de passe incorrect');
+    if(!u.active) throw new Error('Compte suspendu');
+    currentToken = 'demo-'+Date.now();
+    return {token:currentToken, email:u.email, is_admin:u.is_admin, unique_key:u.unique_key, message:'Connexion réussie'};
+  }
+  if(path==='/auth/register'){
+    if(!body.accept_terms) throw new Error('Acceptez les conditions');
+    if(db[body.email]) throw new Error('Email déjà enregistré');
+    if(body.password.length<8) throw new Error('Mot de passe trop court (min. 8)');
+    const k = genKey();
+    db[body.email] = {email:body.email,password:body.password,unique_key:k,is_admin:false,active:true,joined:new Date().toISOString().slice(0,10)};
+    saveDB(db);
+    return {message:'Compte créé', unique_key:k, email:body.email};
+  }
+  if(path==='/analyze') return {...analyzeText(body.query), query:body.query, analyzed_at:new Date().toISOString()};
+  if(path==='/search/google'){
+    const a = analyzeText(body.query);
+    return {query:body.query, google_url:`https://www.google.com/search?q=${encodeURIComponent(body.query)}&hl=fr&safe=active`, pre_analysis:{risk_score:a.risk_score,risk_level:a.risk_level,safe_to_search:a.risk_score<60}};
+  }
+  if(path==='/threats/darkweb') return {threats:DEMO_T, total:DEMO_T.length};
+  if(path==='/messages/send') return {status:'sent', message_id:'demo-'+Date.now()};
+  if(path.startsWith('/messages/')) return {messages:[], total:0};
+  if(path==='/channels/join') return {status:'joined', channel_key:body.partner_key};
+  if(path==='/admin/users' && (!opts.method||opts.method==='GET')){
+    return {total:Object.keys(db).length, users:Object.values(db).map(u=>({...u}))};
+  }
+  if(path==='/admin/users' && opts.method==='POST'){
+    if(db[body.email]) throw new Error('Email déjà utilisé');
+    const k = body.unique_key||genKey();
+    db[body.email]={email:body.email,password:body.password,unique_key:k,is_admin:!!body.is_admin,active:true,joined:new Date().toISOString().slice(0,10)};
+    saveDB(db); return {...db[body.email]};
+  }
+  if(path.includes('/admin/users/') && opts.method==='PATCH'){
+    const email = decodeURIComponent(path.split('/admin/users/')[1]);
+    if(!db[email]) throw new Error('Introuvable');
+    if(body.email && body.email!==email){
+      if(db[body.email]) throw new Error('Email déjà utilisé');
+      db[body.email]={...db[email],...body}; delete db[email];
+    } else { Object.assign(db[email], body); }
+    saveDB(db); return {...db[body.email||email]};
+  }
+  if(path.includes('/admin/users/') && opts.method==='DELETE'){
+    const email = decodeURIComponent(path.split('/admin/users/')[1]);
+    delete db[email]; saveDB(db); return {message:'Supprimé'};
+  }
+  if(path==='/admin/stats'){
+    const users = Object.values(db);
+    return {total_users:users.length, active_users:users.filter(u=>u.active).length, suspended_users:users.filter(u=>!u.active).length, analysis_requests:analysisCount};
+  }
+  if(path==='/admin/logs') return {logs:analysisLogs.slice(-20), total:analysisLogs.length};
+  return {};
+}
+
+// ══════════════════════════════════════════
+// AUTH
+// ══════════════════════════════════════════
+function switchTab(tab){
+  document.getElementById('login-form').style.display = tab==='login'?'flex':'none';
+  document.getElementById('reg-form').style.display   = tab==='register'?'flex':'none';
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>
+    b.classList.toggle('active',(i===0&&tab==='login')||(i===1&&tab==='register')));
+}
+
+async function doLogin(){
+  const email = document.getElementById('li-email').value.trim();
+  const pass  = document.getElementById('li-pass').value;
+  const err   = document.getElementById('li-err');
+  if(!email||!pass){err.textContent='⚠ Remplissez tous les champs.';return;}
+  const btn = document.getElementById('li-btn');
+  btn.disabled=true; btn.innerHTML='<span class="loading">...</span>';
+  try{
+    const data = await api('/auth/login',{method:'POST',body:JSON.stringify({email,password:pass})});
+    currentToken = data.token;
+    currentUser  = {email, is_admin:data.is_admin, unique_key:data.unique_key};
+    err.textContent = '';
+    launchApp();
+  }catch(e){ err.textContent='⚠ '+e.message; }
+  finally{ btn.disabled=false; btn.textContent = LANGS[currentLang]?.btn_activate||'Activer le Sharingan'; }
+}
+
+async function doRegister(){
+  const email = document.getElementById('re-email').value.trim();
+  const pass  = document.getElementById('re-pass').value;
+  const pass2 = document.getElementById('re-pass2').value;
+  const terms = document.getElementById('terms-chk').checked;
+  const err   = document.getElementById('re-err');
+  if(!email||!pass||!pass2){err.textContent='⚠ Remplissez tous les champs.';return;}
+  if(pass!==pass2){err.textContent='⚠ Mots de passe différents.';return;}
+  if(pass.length<8){err.textContent='⚠ Mot de passe trop court (min. 8).';return;}
+  if(!terms){err.textContent='⚠ Acceptez les conditions.';return;}
+  try{
+    await api('/auth/register',{method:'POST',body:JSON.stringify({email,password:pass,accept_terms:'true'})});
+    err.style.color='var(--safe)'; err.textContent='✓ Compte créé. Connectez-vous.';
+    setTimeout(()=>{err.style.color='';err.textContent='';switchTab('login');},2200);
+  }catch(e){err.style.color='';err.textContent='⚠ '+e.message;}
+}
+
+function launchApp(){
+  showScreen('main');
+  document.getElementById('user-lbl').textContent = currentUser.email;
+  if(currentUser.is_admin){
+    document.getElementById('admin-badge').style.display='';
+    document.getElementById('admin-nav').style.display='';
+  }
+  document.getElementById('my-key').textContent = currentUser.unique_key||genKey();
+  loadThreats();
+  // Réappliquer la langue sur la nouvelle page
+  setLang(currentLang);
+  toast('🔴 Sharingan activé — Bienvenue '+(currentUser.email.split('@')[0]));
+}
+
+function doLogout(){
+  currentUser=null; currentToken=null;
+  showScreen('auth');
+  document.getElementById('admin-badge').style.display='none';
+  document.getElementById('admin-nav').style.display='none';
+  document.getElementById('li-pass').value='';
+  document.getElementById('li-err').textContent='';
+}
+
+// ══════════════════════════════════════════
+// MOTEUR D'ANALYSE
+// ══════════════════════════════════════════
+const PHISH=['verify your account','click here immediately','account suspended','free bitcoin','vérifiez votre compte','cliquez immédiatement','compte suspendu','urgence','investissement garanti','mot de passe expiré','connexion suspecte'];
+const DARK=['onion','tor browser','darknet','ransomware','exploit kit','zero-day','credential dump','data breach','stolen credentials','carding','cvv dump','fullz'];
+const MLW=['wannacry','lockbit','emotet','trickbot','cobalt strike','mimikatz','ryuk','notpetya'];
+const SAFED=['google.com','wikipedia.org','github.com','rfi.fr','coursera.org','khanacademy.org','freecodecamp.org'];
+let analysisCount=0, analysisLogs=[];
+
+function analyzeText(query){
+  const q=query.toLowerCase();
+  const phi=PHISH.filter(k=>q.includes(k));
+  const drk=DARK.filter(k=>q.includes(k));
+  const mlw=MLW.filter(k=>q.includes(k));
+  const safe=SAFED.some(s=>q.includes(s));
+  const hasIP=/\b(?:\d{1,3}\.){3}\d{1,3}\b/.test(q);
+  const brands=['paypal','apple','amazon','wave','orange'];
+  const typo=brands.filter(b=>q.includes(b)&&!q.includes(b+'.com'));
+  let score=0;
+  score+=phi.length*22; score+=drk.length*28; score+=mlw.length*45; score+=typo.length*35;
+  if(hasIP)score+=25; if(safe)score=0; score=Math.min(score,100);
+  const LV=[{label:'SÛRET',color:'#00CC44'},{label:'FAIBLE',color:'#88CC00'},{label:'MODÉRÉ',color:'#FF8800'},{label:'ÉLEVÉ',color:'#FF4400'},{label:'CRITIQUE',color:'#CC0000'}];
+  const lvl=score===0?LV[0]:score<20?LV[1]:score<50?LV[2]:score<75?LV[3]:LV[4];
+  const recs=[];
+  if(phi.length)recs.push('⚠️ Contenu phishing détecté — ne cliquez sur aucun lien suspect.');
+  if(typo.length)recs.push('🎭 Possible typosquatting — vérifiez l\'URL exacte.');
+  if(drk.length)recs.push('🕸️ Référence Dark Web — accès risqué.');
+  if(mlw.length)recs.push('🦠 Malware: '+mlw.join(', ')+' — scannez votre système.');
+  if(hasIP)recs.push('🔢 IP directe — méfiance recommandée.');
+  if(score>50)recs.push('🚨 Risque élevé — Signalez sur signal-spam.fr');
+  if(!recs.length)recs.push('✅ Aucune menace détectée. Restez vigilant(e).');
+  analysisCount++;
+  if(currentUser)analysisLogs.push({user_email:currentUser.email,query:query.substring(0,60),risk_score:score,created_at:new Date().toISOString()});
+  return{risk_score:score,risk_level:lvl,indicators:{phishing_keywords:phi,domain_issues:typo.length?['Typosquatting possible']:[],darkweb_refs:drk,malware_families:mlw},recommendations:recs,google_search_url:`https://www.google.com/search?q=${encodeURIComponent(query)}&hl=fr&safe=active`};
+}
+
+// ══════════════════════════════════════════
+// SEARCH UI
+// ══════════════════════════════════════════
+function setMode(m){
+  searchMode=m;
+  const T=LANGS[currentLang]||LANGS.fr;
+  const ph={analyze:T.search_placeholder,google:T.google_placeholder,darkweb:T.dark_placeholder};
+  document.getElementById('main-search').placeholder=ph[m]||'';
+  document.querySelectorAll('#page-search .stab').forEach((b,i)=>b.classList.toggle('active',['analyze','google','darkweb'][i]===m));
+  document.getElementById('analysis-result').innerHTML='';
+}
+
+function doSearch(){
+  const q=document.getElementById('main-search').value.trim();
+  if(!q){toast('⚠ Entrez une requête');return;}
+  if(searchMode==='google'){doGoogleSearchFrom(q,null);return;}
+  if(searchMode==='darkweb'){showPage('threats');document.getElementById('threat-filter').value=q;filterThreats();return;}
+  renderAnalysis(q,'analysis-result');
+}
+
+function quickAnalyze(){
+  const q=document.getElementById('quick-search').value.trim(); if(!q)return;
+  const data=analyzeText(q); const c=data.risk_level.color;
+  document.getElementById('quick-result').innerHTML=`
+    <div style="display:flex;align-items:center;gap:.8rem;padding:.7rem 1rem;background:var(--panel);border:1px solid var(--border);border-left:3px solid ${c};border-radius:4px;flex-wrap:wrap">
+      <div style="font-family:var(--fm);font-size:1.2rem;font-weight:bold;color:${c}">${data.risk_score}</div>
+      <div><div style="font-family:var(--fb);font-size:.88rem;color:${c}">${data.risk_level.label}</div><div style="font-size:.78rem;color:var(--sub)">${data.recommendations[0]}</div></div>
+      <div style="margin-left:auto;display:flex;gap:.4rem;flex-wrap:wrap">
+        <a href="${data.google_search_url}" target="_blank" class="action-btn">🌐 Google</a>
+        <button class="action-btn primary" onclick="showPage('search');document.getElementById('main-search').value=${JSON.stringify(q)};renderAnalysis(${JSON.stringify(q)},'analysis-result')">Analyser →</button>
+      </div>
+    </div>`;
+}
+
+async function renderAnalysis(query,id){
+  const T=LANGS[currentLang]||LANGS.fr;
+  const el=document.getElementById(id); if(!el)return;
+  el.innerHTML=`<div class="loading" style="padding:1rem">${T.analyzing}</div>`;
+  await new Promise(r=>setTimeout(r,300));
+  const data=analyzeText(query); const c=data.risk_level.color;
+  const iocK=[['phishing_keywords','🎣 Phishing'],['domain_issues','🌐 Domaine'],['darkweb_refs','🕸️ Dark Web'],['malware_families','🦠 Malware']];
+  const iocH=iocK.map(([k,l])=>`<div class="ioc-block"><div class="ioc-title">${l}</div>${(data.indicators[k]||[]).length?(data.indicators[k]).map(t=>`<span class="ioc-tag">${t}</span>`).join(''):'<div class="ioc-none">Aucun indicateur</div>'}</div>`).join('');
+  const recsH=data.recommendations.map(r=>`<div class="rec-item">${r}</div>`).join('');
+  const matches=DEMO_T.filter(t=>(t.indicators||[]).some(i=>query.toLowerCase().includes(i))).slice(0,2);
+  el.className='analysis-box';
+  el.innerHTML=`
+    <div class="risk-header">
+      <div class="risk-gauge"><canvas id="rgc" width="70" height="70"></canvas><div class="risk-num" style="color:${c}">${data.risk_score}</div></div>
+      <div>
+        <div style="font-family:var(--fb);font-size:1.1rem;letter-spacing:.1em;text-transform:uppercase;color:${c}">${data.risk_level.label}</div>
+        <div style="font-family:var(--fm);font-size:.7rem;color:var(--muted);margin-top:.2rem;word-break:break-all">${query.substring(0,80)}${query.length>80?'…':''}</div>
+        <div style="font-family:var(--fm);font-size:.62rem;color:var(--muted);margin-top:.3rem">${new Date().toLocaleTimeString('fr-FR')}</div>
+      </div>
+    </div>
+    <div class="ioc-grid">${iocH}</div>
+    <div style="font-family:var(--fm);font-size:.63rem;color:var(--muted);letter-spacing:.2em;text-transform:uppercase;margin-bottom:.5rem">${T.recs_title}</div>
+    <div class="recs">${recsH}</div>
+    <div style="font-family:var(--fm);font-size:.63rem;color:var(--muted);letter-spacing:.2em;text-transform:uppercase;margin:.8rem 0 .5rem">${T.actions_title}</div>
+    <div class="action-row">
+      <a href="${data.google_search_url}" target="_blank" class="action-btn primary">🌐 Google</a>
+      <a href="https://www.virustotal.com/gui/search/${encodeURIComponent(query)}" target="_blank" class="action-btn">🦠 VirusTotal</a>
+      <a href="https://haveibeenpwned.com/" target="_blank" class="action-btn">🕵️ HaveIBeenPwned</a>
+      ${data.risk_score>30?'<a href="https://www.signal-spam.fr" target="_blank" class="action-btn">📢 Signaler</a>':''}
+    </div>
+    ${matches.length?`<div style="margin-top:1.2rem"><div style="font-family:var(--fm);font-size:.63rem;color:var(--muted);letter-spacing:.2em;text-transform:uppercase;margin-bottom:.6rem">🕸️ ${T.dw_match_title} (${matches.length})</div><div class="threat-list">${matches.map(renderThreat).join('')}</div></div>`:''}
+  `;
+  drawGauge('rgc',data.risk_score,c);
+}
+
+function drawGauge(id,score,color){
+  const canvas=document.getElementById(id); if(!canvas)return;
+  const ctx=canvas.getContext('2d'),cx=35,cy=35,r=28;
+  ctx.clearRect(0,0,70,70);
+  ctx.beginPath();ctx.arc(cx,cy,r,Math.PI*.75,Math.PI*2.25);ctx.strokeStyle='#2A0A0A';ctx.lineWidth=5;ctx.lineCap='round';ctx.stroke();
+  if(score>0){ctx.beginPath();ctx.arc(cx,cy,r,Math.PI*.75,Math.PI*(.75+score/100*1.5));ctx.strokeStyle=color;ctx.lineWidth=5;ctx.stroke();}
+}
+
+// ══════════════════════════════════════════
+// GOOGLE SEARCH
+// ══════════════════════════════════════════
+function doGoogleSearch(){
+  const q=document.getElementById('google-q').value.trim(); if(!q)return;
+  doGoogleSearchFrom(q, document.getElementById('google-result'));
+}
+function doGoogleSearchFrom(q, resEl){
+  const data=analyzeText(q); const score=data.risk_score;
+  const c=score<30?'var(--safe)':score<60?'var(--warn)':'var(--danger)';
+  const url=`https://www.google.com/search?q=${encodeURIComponent(q)}&hl=fr&safe=active`;
+  if(resEl){resEl.innerHTML=`<div style="display:flex;align-items:center;gap:.6rem;padding:.45rem .8rem;background:rgba(0,0,0,.3);border-radius:3px;border-left:2px solid ${c};font-family:var(--fm);font-size:.72rem"><span style="color:${c}">Score: ${score}/100</span><span style="color:var(--sub)">${data.recommendations[0]}</span></div>`;}
+  if(score<60){window.open(url,'_blank');}
+  else if(confirm(`⚠ Score: ${score}/100\n${data.recommendations[0]}\n\nOuvrir quand même ?`)){window.open(url,'_blank');}
+}
+
+// ══════════════════════════════════════════
+// DARK WEB THREATS
+// ══════════════════════════════════════════
+const DEMO_T=[
+  {id:'DW-001',category:'Data Breach',title:'Fuite massive — Opérateurs Afrique de l\'Ouest',description:'~2.1M entrées sur forum darknet.',severity:4,date:'2026-03-10',region:'Afrique de l\'Ouest',indicators:['telecom','mobile','senegal','wave'],recommendation:'Changez vos mots de passe. Activez la 2FA.'},
+  {id:'DW-002',category:'Phishing Kit',title:'Kit Phishing — Wave / Orange Money',description:'Kit mobile money via Telegram.',severity:4,date:'2026-03-08',region:'Sénégal / Mali',indicators:['wave','orange money','mobile money'],recommendation:'Ne saisissez jamais votre PIN sur un lien SMS.'},
+  {id:'DW-003',category:'Ransomware',title:'LockBit 3.0 — PME françaises',description:'Campagne via emails frauduleux.',severity:3,date:'2026-03-12',region:'France / Europe',indicators:['lockbit','ransomware','facture'],recommendation:'Sauvegardez vos données régulièrement.'},
+  {id:'DW-004',category:'Credential Dump',title:'480k comptes Gmail/Yahoo compromis',description:'Vente sur BreachForums.',severity:3,date:'2026-03-11',region:'Global',indicators:['gmail','yahoo','breach','dump'],recommendation:'Vérifiez sur HaveIBeenPwned.'},
+  {id:'DW-005',category:'Scam Crypto',title:'Faux exchanges africains',description:'8 sites imitant Binance/Coinbase.',severity:3,date:'2026-03-09',region:'Afrique',indicators:['crypto','bitcoin','exchange','binance'],recommendation:'Utilisez uniquement les apps officielles.'},
+  {id:'DW-006',category:'Zero-Day',title:'Exploit Chrome < 124',description:'Exécution de code à distance.',severity:4,date:'2026-03-13',region:'Global',indicators:['chrome','exploit','zero-day'],recommendation:'Mettez à jour Chrome immédiatement.'},
+  {id:'DW-007',category:'Social Eng.',title:'Escroquerie romance deepfake',description:'Faux profils IA sur Facebook.',severity:2,date:'2026-03-07',region:'Afrique / Diaspora',indicators:['romance','facebook','deepfake'],recommendation:'Méfiez-vous des personnes demandant de l\'argent.'},
+];
+
+async function loadThreats(){
+  try{ const data=await api('/threats/darkweb',{method:'GET'}); allThreats=data.threats||DEMO_T; }
+  catch(e){ allThreats=DEMO_T; }
+  renderThreats(allThreats);
+}
+function renderThreats(threats){
+  const T=LANGS[currentLang]||LANGS.fr;
+  const el=document.getElementById('threat-list'); if(!el)return;
+  if(!threats.length){el.innerHTML=`<div style="text-align:center;color:var(--muted);font-family:var(--fm);font-size:.8rem;padding:2rem">${T.no_threats}</div>`;return;}
+  el.innerHTML=threats.map(renderThreat).join('');
+}
+function renderThreat(t){
+  const sc='sev-'+Math.min(t.severity,4);
+  const c=t.severity>=4?'var(--ember)':t.severity===3?'#FF8800':'var(--safe)';
+  return `<div class="threat-item"><div class="t-sev ${sc}">${t.severity}</div><div class="t-body"><div class="t-title">${t.title}</div><div class="t-desc">${t.description}</div><div class="t-meta"><span class="t-tag">📁 ${t.category}</span><span class="t-tag">📍 ${t.region}</span><span class="t-tag">📅 ${t.date}</span><span class="t-tag" style="color:${c}">${'●'.repeat(t.severity)+'○'.repeat(Math.max(0,4-t.severity))}</span></div><div class="t-rec">💡 ${t.recommendation}</div></div></div>`;
+}
+function filterThreats(){
+  const q=(document.getElementById('threat-filter')?.value||'').toLowerCase();
+  renderThreats(q?allThreats.filter(t=>t.title.toLowerCase().includes(q)||t.category.toLowerCase().includes(q)||t.region.toLowerCase().includes(q)||(t.indicators||[]).some(i=>i.includes(q))):allThreats);
+}
+function filterBySev(m){
+  document.querySelectorAll('#page-threats .stab').forEach((b,i)=>b.classList.toggle('active',i===0&&m===0||(m===4&&i===1)||(m===3&&i===2)||(m===2&&i===3)));
+  renderThreats(m?allThreats.filter(t=>t.severity>=m):allThreats);
+}
+function askDarkWeb(){
+  const q=document.getElementById('dw-qa-input').value.trim(); if(!q)return;
+  window.open(`https://www.google.com/search?q=${encodeURIComponent(q)}`, '_blank');
+}
+
+// ══════════════════════════════════════════
+// TRAVEL CALCULATOR
+// ══════════════════════════════════════════
+const CITIES = {
+  'AF': {n:'Afghanistan', lat:34.5, lon:69.2, tz:4.5}, 'ZA': {n:'Afrique du Sud', lat:-25.7, lon:28.2, tz:2},
+  'AL': {n:'Albanie', lat:41.3, lon:19.8, tz:1}, 'DZ': {n:'Algérie', lat:36.7, lon:3.0, tz:1},
+  'DE': {n:'Allemagne', lat:52.5, lon:13.4, tz:1}, 'AD': {n:'Andorre', lat:42.5, lon:1.5, tz:1},
+  'AO': {n:'Angola', lat:-8.8, lon:13.2, tz:1}, 'SA': {n:'Arabie saoudite', lat:24.7, lon:46.7, tz:3},
+  'AR': {n:'Argentine', lat:-34.6, lon:-58.4, tz:-3}, 'AM': {n:'Arménie', lat:40.2, lon:44.5, tz:4},
+  'AU': {n:'Australie', lat:-35.3, lon:149.1, tz:10}, 'AT': {n:'Autriche', lat:48.2, lon:16.4, tz:1},
+  'AZ': {n:'Azerbaïdjan', lat:40.4, lon:49.8, tz:4}, 'BS': {n:'Bahamas', lat:25.0, lon:-77.3, tz:-5},
+  'BH': {n:'Bahreïn', lat:26.2, lon:50.6, tz:3}, 'BD': {n:'Bangladesh', lat:23.8, lon:90.4, tz:6},
+  'BB': {n:'Barbade', lat:13.1, lon:-59.6, tz:-4}, 'BE': {n:'Belgique', lat:50.8, lon:4.3, tz:1},
+  'BZ': {n:'Belize', lat:17.2, lon:-88.8, tz:-6}, 'BJ': {n:'Bénin', lat:6.5, lon:2.6, tz:1},
+  'BT': {n:'Bhoutan', lat:27.5, lon:89.6, tz:6}, 'BY': {n:'Biélorussie', lat:53.9, lon:27.6, tz:3},
+  'MM': {n:'Birmanie', lat:19.7, lon:96.1, tz:6.5}, 'BO': {n:'Bolivie', lat:-19.0, lon:-65.2, tz:-4},
+  'BA': {n:'Bosnie-Herzégovine', lat:43.9, lon:18.4, tz:1}, 'BW': {n:'Botswana', lat:-24.6, lon:25.9, tz:2},
+  'BR': {n:'Brésil', lat:-15.8, lon:-47.9, tz:-3}, 'BN': {n:'Brunei', lat:4.9, lon:114.9, tz:8},
+  'BG': {n:'Bulgarie', lat:42.7, lon:23.3, tz:2}, 'BF': {n:'Burkina Faso', lat:12.4, lon:-1.5, tz:0},
+  'BI': {n:'Burundi', lat:-3.4, lon:29.9, tz:2}, 'KH': {n:'Cambodge', lat:11.5, lon:104.9, tz:7},
+  'CM': {n:'Cameroun', lat:3.9, lon:11.5, tz:1}, 'CA': {n:'Canada', lat:45.4, lon:-75.7, tz:-5},
+  'CV': {n:'Cap-Vert', lat:14.9, lon:-23.5, tz:-1}, 'CF': {n:'Centrafrique', lat:4.4, lon:18.6, tz:1},
+  'CL': {n:'Chili', lat:-33.4, lon:-70.7, tz:-4}, 'CN': {n:'Chine', lat:39.9, lon:116.4, tz:8},
+  'CY': {n:'Chypre', lat:35.2, lon:33.4, tz:2}, 'CO': {n:'Colombie', lat:4.7, lon:-74.1, tz:-5},
+  'KM': {n:'Comores', lat:-11.7, lon:43.2, tz:3}, 'CG': {n:'Congo-Brazzaville', lat:-4.3, lon:15.3, tz:1},
+  'CD': {n:'Congo-Kinshasa (RDC)', lat:-4.3, lon:15.3, tz:1}, 'KP': {n:'Corée du Nord', lat:39.0, lon:125.8, tz:9},
+  'KR': {n:'Corée du Sud', lat:37.5, lon:127.0, tz:9}, 'CR': {n:'Costa Rica', lat:9.9, lon:-84.1, tz:-6},
+  'CI': {n:'Côte d\'Ivoire', lat:6.8, lon:-5.3, tz:0}, 'HR': {n:'Croatie', lat:45.8, lon:16.0, tz:1},
+  'CU': {n:'Cuba', lat:23.1, lon:-82.4, tz:-5}, 'DK': {n:'Danemark', lat:55.7, lon:12.6, tz:1},
+  'DJ': {n:'Djibouti', lat:11.6, lon:43.1, tz:3}, 'DM': {n:'Dominique', lat:15.3, lon:-61.4, tz:-4},
+  'EG': {n:'Égypte', lat:30.0, lon:31.2, tz:2}, 'AE': {n:'Émirats arabes unis', lat:24.5, lon:54.4, tz:4},
+  'EC': {n:'Équateur', lat:-0.2, lon:-78.5, tz:-5}, 'ER': {n:'Érythrée', lat:15.3, lon:38.9, tz:3},
+  'ES': {n:'Espagne', lat:40.4, lon:-3.7, tz:1}, 'EE': {n:'Estonie', lat:59.4, lon:24.7, tz:2},
+  'US': {n:'États-Unis', lat:38.9, lon:-77.0, tz:-5}, 'ET': {n:'Éthiopie', lat:9.0, lon:38.7, tz:3},
+  'FI': {n:'Finlande', lat:60.2, lon:24.9, tz:2}, 'FR': {n:'France', lat:48.9, lon:2.4, tz:1},
+  'GA': {n:'Gabon', lat:0.4, lon:9.5, tz:1}, 'GM': {n:'Gambie', lat:13.5, lon:-16.6, tz:0},
+  'GE': {n:'Géorgie', lat:41.7, lon:44.8, tz:4}, 'GH': {n:'Ghana', lat:5.6, lon:-0.2, tz:0},
+  'GR': {n:'Grèce', lat:38.0, lon:23.7, tz:2}, 'GD': {n:'Grenade', lat:12.0, lon:-61.7, tz:-4},
+  'GT': {n:'Guatemala', lat:14.6, lon:-90.5, tz:-6}, 'GN': {n:'Guinée', lat:9.5, lon:-13.7, tz:0},
+  'GW': {n:'Guinée-Bissau', lat:11.9, lon:-15.6, tz:0}, 'GQ': {n:'Guinée équatoriale', lat:3.7, lon:8.8, tz:1},
+  'GY': {n:'Guyana', lat:6.8, lon:-58.2, tz:-4}, 'HT': {n:'Haïti', lat:18.5, lon:-72.3, tz:-5},
+  'HN': {n:'Honduras', lat:14.1, lon:-87.2, tz:-6}, 'HU': {n:'Hongrie', lat:47.5, lon:19.0, tz:1},
+  'IN': {n:'Inde', lat:28.6, lon:77.2, tz:5.5}, 'ID': {n:'Indonésie', lat:-6.2, lon:106.8, tz:7},
+  'IQ': {n:'Irak', lat:33.3, lon:44.4, tz:3}, 'IR': {n:'Iran', lat:35.7, lon:51.4, tz:3.5},
+  'IE': {n:'Irlande', lat:53.3, lon:-6.2, tz:0}, 'IS': {n:'Islande', lat:64.1, lon:-21.9, tz:0},
+  'IL': {n:'Israël', lat:31.8, lon:35.2, tz:2}, 'IT': {n:'Italie', lat:41.9, lon:12.5, tz:1},
+  'JM': {n:'Jamaïque', lat:18.0, lon:-76.8, tz:-5}, 'JP': {n:'Japon', lat:35.7, lon:139.7, tz:9},
+  'JO': {n:'Jordanie', lat:31.9, lon:35.9, tz:3}, 'KZ': {n:'Kazakhstan', lat:51.2, lon:71.4, tz:6},
+  'KE': {n:'Kenya', lat:-1.3, lon:36.8, tz:3}, 'KG': {n:'Kirghizistan', lat:42.9, lon:74.6, tz:6},
+  'KI': {n:'Kiribati', lat:1.4, lon:173.0, tz:12}, 'KW': {n:'Koweït', lat:29.4, lon:48.0, tz:3},
+  'LA': {n:'Laos', lat:18.0, lon:102.6, tz:7}, 'LS': {n:'Lesotho', lat:-29.3, lon:27.5, tz:2},
+  'LV': {n:'Lettonie', lat:56.9, lon:24.1, tz:2}, 'LB': {n:'Liban', lat:33.9, lon:35.5, tz:2},
+  'LR': {n:'Liberia', lat:6.3, lon:-10.8, tz:0}, 'LY': {n:'Libye', lat:32.9, lon:13.2, tz:2},
+  'LI': {n:'Liechtenstein', lat:47.1, lon:9.5, tz:1}, 'LT': {n:'Lituanie', lat:54.7, lon:25.3, tz:2},
+  'LU': {n:'Luxembourg', lat:49.6, lon:6.1, tz:1}, 'MK': {n:'Macédoine du Nord', lat:42.0, lon:21.4, tz:1},
+  'MG': {n:'Madagascar', lat:-18.9, lon:47.5, tz:3}, 'MY': {n:'Malaisie', lat:3.1, lon:101.7, tz:8},
+  'MW': {n:'Malawi', lat:-13.9, lon:33.8, tz:2}, 'MV': {n:'Maldives', lat:4.2, lon:73.5, tz:5},
+  'ML': {n:'Mali', lat:12.6, lon:-8.0, tz:0}, 'MT': {n:'Malte', lat:35.9, lon:14.5, tz:1},
+  'MA': {n:'Maroc', lat:34.0, lon:-6.8, tz:1}, 'MU': {n:'Maurice', lat:-20.2, lon:57.5, tz:4},
+  'MR': {n:'Mauritanie', lat:18.1, lon:-15.9, tz:0}, 'MX': {n:'Mexique', lat:19.4, lon:-99.1, tz:-6},
+  'FM': {n:'Micronésie', lat:6.9, lon:158.1, tz:11}, 'MD': {n:'Moldavie', lat:47.0, lon:28.9, tz:2},
+  'MC': {n:'Monaco', lat:43.7, lon:7.4, tz:1}, 'MN': {n:'Mongolie', lat:47.9, lon:106.9, tz:8},
+  'ME': {n:'Monténégro', lat:42.4, lon:19.3, tz:1}, 'MZ': {n:'Mozambique', lat:-25.9, lon:32.6, tz:2},
+  'NA': {n:'Namibie', lat:-22.6, lon:17.1, tz:2}, 'NR': {n:'Nauru', lat:-0.5, lon:166.9, tz:12},
+  'NP': {n:'Népal', lat:27.7, lon:85.3, tz:5.75}, 'NI': {n:'Nicaragua', lat:12.1, lon:-86.3, tz:-6},
+  'NE': {n:'Niger', lat:13.5, lon:2.1, tz:1}, 'NG': {n:'Nigéria', lat:9.1, lon:7.4, tz:1},
+  'NO': {n:'Norvège', lat:59.9, lon:10.7, tz:1}, 'NZ': {n:'Nouvelle-Zélande', lat:-41.3, lon:174.8, tz:12},
+  'OM': {n:'Oman', lat:23.6, lon:58.5, tz:4}, 'UG': {n:'Ouganda', lat:0.3, lon:32.6, tz:3},
+  'UZ': {n:'Ouzbékistan', lat:41.3, lon:69.3, tz:5}, 'PK': {n:'Pakistan', lat:33.7, lon:73.1, tz:5},
+  'PW': {n:'Palaos', lat:7.5, lon:134.6, tz:9}, 'PA': {n:'Panama', lat:9.0, lon:-79.5, tz:-5},
+  'PG': {n:'Papouasie-N.-G.', lat:-9.5, lon:147.2, tz:10}, 'PY': {n:'Paraguay', lat:-25.3, lon:-57.6, tz:-4},
+  'NL': {n:'Pays-Bas', lat:52.4, lon:4.9, tz:1}, 'PE': {n:'Pérou', lat:-12.0, lon:-77.0, tz:-5},
+  'PH': {n:'Philippines', lat:14.6, lon:121.0, tz:8}, 'PL': {n:'Pologne', lat:52.2, lon:21.0, tz:1},
+  'PT': {n:'Portugal', lat:38.7, lon:-9.1, tz:0}, 'QA': {n:'Qatar', lat:25.3, lon:51.5, tz:3},
+  'RO': {n:'Roumanie', lat:44.4, lon:26.1, tz:2}, 'GB': {n:'Royaume-Uni', lat:51.5, lon:-0.1, tz:0},
+  'RU': {n:'Russie', lat:55.8, lon:37.6, tz:3}, 'RW': {n:'Rwanda', lat:-1.9, lon:30.1, tz:2},
+  'KN': {n:'Saint-Christophe', lat:17.3, lon:-62.7, tz:-4}, 'SM': {n:'Saint-Marin', lat:43.9, lon:12.4, tz:1},
+  'VC': {n:'Saint-Vincent', lat:13.2, lon:-61.2, tz:-4}, 'LC': {n:'Sainte-Lucie', lat:14.0, lon:-61.0, tz:-4},
+  'SB': {n:'Salomon', lat:-9.4, lon:159.9, tz:11}, 'SV': {n:'Salvador', lat:13.7, lon:-89.2, tz:-6},
+  'WS': {n:'Samoa', lat:-13.8, lon:-171.8, tz:13}, 'ST': {n:'Sao Tomé-et-P.', lat:0.3, lon:6.7, tz:0},
+  'SN': {n:'Sénégal', lat:14.7, lon:-17.4, tz:0}, 'RS': {n:'Serbie', lat:44.8, lon:20.5, tz:1},
+  'SC': {n:'Seychelles', lat:-4.6, lon:55.4, tz:4}, 'SL': {n:'Sierra Leone', lat:8.5, lon:-13.2, tz:0},
+  'SG': {n:'Singapour', lat:1.3, lon:103.8, tz:8}, 'SK': {n:'Slovaquie', lat:48.1, lon:17.1, tz:1},
+  'SI': {n:'Slovénie', lat:46.0, lon:14.5, tz:1}, 'SO': {n:'Somalie', lat:2.0, lon:45.3, tz:3},
+  'SD': {n:'Soudan', lat:15.6, lon:32.5, tz:2}, 'SS': {n:'Soudan du Sud', lat:4.8, lon:31.6, tz:2},
+  'LK': {n:'Sri Lanka', lat:6.9, lon:79.8, tz:5.5}, 'SE': {n:'Suède', lat:59.3, lon:18.1, tz:1},
+  'CH': {n:'Suisse', lat:46.9, lon:7.4, tz:1}, 'SR': {n:'Suriname', lat:5.8, lon:-55.2, tz:-3},
+  'SY': {n:'Syrie', lat:33.5, lon:36.3, tz:3}, 'TJ': {n:'Tadjikistan', lat:38.5, lon:68.8, tz:5},
+  'TZ': {n:'Tanzanie', lat:-6.2, lon:35.7, tz:3}, 'TD': {n:'Tchad', lat:12.1, lon:15.0, tz:1},
+  'CZ': {n:'Tchéquie', lat:50.1, lon:14.4, tz:1}, 'TH': {n:'Thaïlande', lat:13.7, lon:100.5, tz:7},
+  'TL': {n:'Timor oriental', lat:-8.6, lon:125.6, tz:9}, 'TG': {n:'Togo', lat:6.1, lon:1.2, tz:0},
+  'TO': {n:'Tonga', lat:-21.1, lon:-175.2, tz:13}, 'TT': {n:'Trinité-et-Tobago', lat:10.7, lon:-61.5, tz:-4},
+  'TN': {n:'Tunisie', lat:36.8, lon:10.2, tz:1}, 'TM': {n:'Turkménistan', lat:37.9, lon:58.4, tz:5},
+  'TR': {n:'Turquie', lat:39.9, lon:32.9, tz:3}, 'TV': {n:'Tuvalu', lat:-8.5, lon:179.2, tz:12},
+  'UA': {n:'Ukraine', lat:50.4, lon:30.5, tz:2}, 'UY': {n:'Uruguay', lat:-34.9, lon:-56.2, tz:-3},
+  'VU': {n:'Vanuatu', lat:-17.7, lon:168.3, tz:11}, 'VA': {n:'Vatican', lat:41.9, lon:12.5, tz:1},
+  'VE': {n:'Venezuela', lat:10.5, lon:-66.9, tz:-4}, 'VN': {n:'Vietnam', lat:21.0, lon:105.8, tz:7},
+  'YE': {n:'Yémen', lat:15.3, lon:44.2, tz:3}, 'ZM': {n:'Zambie', lat:-15.4, lon:28.3, tz:2},
+  'ZW': {n:'Zimbabwe', lat:-17.8, lon:31.0, tz:2}
+};
+
+function initTravelCalc(){
+  const o=document.getElementById('tc-orig'), d=document.getElementById('tc-dest');
+  if(!o||o.children.length>1)return; 
+  const keys = Object.keys(CITIES).sort((a,b)=>CITIES[a].n.localeCompare(CITIES[b].n));
+  keys.forEach(k=>{ const op=document.createElement('option'); op.value=k; op.textContent=CITIES[k].n; o.appendChild(op.cloneNode(true)); d.appendChild(op); });
+}
+function calcTravel(){
+  const k1=document.getElementById('tc-orig').value, k2=document.getElementById('tc-dest').value;
+  if(!k1||!k2)return; const c1=CITIES[k1], c2=CITIES[k2];
+  const R=6371, dLat=(c2.lat-c1.lat)*Math.PI/180, dLon=(c2.lon-c1.lon)*Math.PI/180;
+  const a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(c1.lat*Math.PI/180)*Math.cos(c2.lat*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
+  const dist=R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+  const flight=dist/850+0.5, h=Math.floor(flight), m=Math.round((flight-h)*60);
+  const tzd=c2.tz-c1.tz; 
+  document.getElementById('res-dist').textContent=Math.round(dist).toLocaleString()+' km';
+  document.getElementById('res-time').textContent=`${h}h ${String(m).padStart(2,'0')}`;
+  document.getElementById('res-tz').textContent=(tzd>0?'+':'')+tzd+'h';
+  document.getElementById('travel-res').style.display='grid';
+}
+
+// ══════════════════════════════════════════
+// VEILLE INTELLIGENCE
+// ══════════════════════════════════════════
+const ALERTS_POOL = [
+  {t:'Sénégal', msg:'Surveillance accrue des frontières suite aux récents événements régionaux.', src:'DakarActu'},
+  {t:'Mali', msg:'Opérations de sécurisation au nord. Perturbations internet signalées vers Kidal.', src:'RFI Afrique'},
+  {t:'Ukraine', msg:'Nouvelles alertes sur les infrastructures critiques à l\'est.', src:'AFP / Reuters'},
+  {t:'RDC', msg:'Tensions persistantes près de Goma. Mouvements signalés.', src:'Radio Okapi'},
+  {t:'Burkina Faso', msg:'Couvre-feu maintenu dans certaines zones du Soum.', src:'Burkina24'},
+  {t:'France', msg:'Alerte cyber : Campagne de phishing ciblant les administrations.', src:'ANSSI'},
+  {t:'Soudan', msg:'Situation humanitaire critique à Khartoum. Appels au calme.', src:'Al Jazeera'},
+  {t:'Niger', msg:'Renforcement des accords de coopération sécuritaire.', src:'ActuNiger'},
+  {t:'Monde Cyber', msg:'Nouvelle faille Zero-Day critique identifiée sur les routeurs Cisco.', src:'The Hacker News'},
+  {t:'CEDEAO', msg:'Sommet extraordinaire convoqué sur la stabilité régionale.', src:'Jeune Afrique'},
+  {t:'Côte d\'Ivoire', msg:'Lancement d\'un plan national de renforcement cyber.', src:'Fraternité Matin'},
+  {t:'Gabon', msg:'Retour progressif à la normale après les incidents mineurs.', src:'GabonReview'}
+];
+
+let alertInterval;
+
+function initVeilleFeed(){
+  const el=document.getElementById('veille-alerts'); if(!el)return;
+  el.innerHTML='';
+  if(alertInterval) clearInterval(alertInterval);
+  
+  // Chargement initial aléatoire (6 alertes) pour varier chaque jour
+  const shuffled = [...ALERTS_POOL].sort(() => 0.5 - Math.random()).slice(0, 6);
+  shuffled.forEach(a => addAlertToFeed(a, false));
+
+  // Simulation de flux en direct (nouvelle alerte toutes les 15s)
+  alertInterval = setInterval(() => {
+    const randomAlert = ALERTS_POOL[Math.floor(Math.random() * ALERTS_POOL.length)];
+    addAlertToFeed(randomAlert, true);
+  }, 15000);
+}
+
+function addAlertToFeed(a, isNew){
+  const el=document.getElementById('veille-alerts');
+  const d=document.createElement('div'); d.className='alert-item';
+  if(isNew) d.style.animation = 'fadeIn 0.5s ease';
+  const time = new Date();
+  if(!isNew) time.setMinutes(time.getMinutes() - Math.floor(Math.random()*300)); // Simuler passé
+  const timeStr = `${String(time.getHours()).padStart(2,'0')}:${String(time.getMinutes()).padStart(2,'0')}`;
+  d.innerHTML=`<div class="alert-time">${timeStr}</div><div><div class="alert-txt"><strong style="color:var(--white)">${a.t}</strong> : ${a.msg}</div><div class="alert-src">Source : ${a.src}</div></div>`;
+  if(isNew) el.insertBefore(d, el.firstChild); else el.appendChild(d);
+  if(el.children.length > 20) el.lastChild.remove();
+}
+
+const DISINFO_POOL = [
+  {
+    risk:4, 
+    fr:{t:'Deepfake', m:'Vidéo manipulée du Président du Sénégal sur TikTok.'},
+    en:{t:'Deepfake', m:'Manipulated video of Senegal President on TikTok.'},
+    wo:{t:'Deepfake', m:'Video bu ñu soppi ci President Sénégal ci TikTok.'}
+  },
+  {
+    risk:3,
+    fr:{t:'Botnet', m:'Réseau de 5000 bots Twitter désactivé (Ghana).'},
+    en:{t:'Botnet', m:'Network of 5000 Twitter bots dismantled (Ghana).'},
+    wo:{t:'Botnet', m:'Mboolo 5000 bots Twitter yu ñu dindi (Ghana).'}
+  },
+  {
+    risk:4,
+    fr:{t:'Propagande', m:'Faux articles imitant Jeune Afrique sur Facebook.'},
+    en:{t:'Propaganda', m:'Fake articles mimicking Jeune Afrique on Facebook.'},
+    wo:{t:'Propagande', m:'Ay article yu du dëgg ci Facebook.'}
+  },
+  {
+    risk:5,
+    fr:{t:'IA Audio', m:'Audio généré par IA incitant à la violence (RDC).'},
+    en:{t:'AI Audio', m:'AI-generated audio inciting violence (DRC).'},
+    wo:{t:'IA Audio', m:'Audio bu ñu defar ak machine di woote xare (RDC).'}
+  }
+];
+
+const WAR_RISKS = [
+  {id:'sd', v:95, c:'var(--ember)', fr:'Soudan (Guerre civile)', en:'Sudan (Civil War)', wo:'Soudan (Xare)'},
+  {id:'gz', v:92, c:'var(--ember)', fr:'Gaza / Israël', en:'Gaza / Israel', wo:'Gaza / Israël'},
+  {id:'uk', v:88, c:'#FF4400', fr:'Ukraine', en:'Ukraine', wo:'Ukraine'},
+  {id:'cd', v:85, c:'#FF4400', fr:'RDC Est', en:'DRC East', wo:'RDC Penku'},
+  {id:'sl', v:78, c:'#FF8800', fr:'Sahel (Zone des 3 frontières)', en:'Sahel (3 borders zone)', wo:'Sahel (3 frontières)'},
+  {id:'ht', v:72, c:'#FF8800', fr:'Haïti (Gangs)', en:'Haiti (Gangs)', wo:'Haïti (Gangs)'},
+  {id:'tw', v:65, c:'#CCAA00', fr:'Taïwan (Tensions)', en:'Taiwan (Tensions)', wo:'Taïwan (Tensions)'}
+];
+
+function openDisinfoModal(){
+  const T = LANGS[currentLang]||LANGS.fr;
+  const lang = ['fr','en','wo'].includes(currentLang) ? currentLang : 'fr';
+  
+  let feedHtml = '';
+  const shuffled = [...DISINFO_POOL].sort(()=>0.5-Math.random()).slice(0,5);
+  shuffled.forEach(item => {
+     const info = item[lang];
+     const time = Math.floor(Math.random()*60)+2; 
+     const color = item.risk>=4 ? 'var(--ember)' : item.risk===3 ? '#FF8800' : 'var(--safe)';
+     const timeStr = currentLang==='en' ? `${time} min ago` : currentLang==='wo' ? `Am na ${time} min` : `Il y a ${time} min`;
+     feedHtml += `<div class="alert-item" style="padding:.5rem 0"><div class="alert-time" style="width:70px">${timeStr}</div><div><div class="alert-txt"><strong style="color:${color}">${info.t}</strong> : ${info.m}</div></div></div>`;
+  });
+
+  const c=document.getElementById('disinfo-content');
+  c.innerHTML=`
+    <h3 style="color:var(--white);margin-bottom:.5rem">⚠️ ${T.v2_t}</h3>
+    <div style="background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:4px;padding:1rem;margin-bottom:1.5rem">
+        <div style="font-family:var(--fm);font-size:.66rem;color:var(--crimson);letter-spacing:.2em;text-transform:uppercase;margin-bottom:.8rem;animation:blink 2s infinite">📡 LIVE TRACKER</div>
+        <div class="alert-box" style="height:150px;border-left:none;padding:0;margin:0;overflow-y:auto;background:transparent;border:none">${feedHtml}</div>
+    </div>
+    <p style="color:var(--sub);margin-bottom:1rem;font-size:.85rem">${T.v2_d}</p>
+
+    <h4 style="color:var(--safe);margin-bottom:.4rem">✅ SOURCES (Fact-Checking)</h4>
+    <div style="display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1rem">
+      ${['Africa Check','PesaCheck','Dubawa','AFP Fact Check','Reuters Fact Check','BBC Verify'].map(s=>`<span class="ioc-tag" style="cursor:pointer;color:var(--text);border-color:var(--muted)" onclick="openLink('https://www.google.com/search?q=${s}')">${s}</span>`).join('')}
+    </div>
+  `;
+  openModal('disinfo-modal');
+}
+
+function openWarModal(){
+  const T = LANGS[currentLang]||LANGS.fr;
+  const lang = ['fr','en','wo'].includes(currentLang) ? currentLang : 'fr';
+  const c=document.getElementById('war-content');
+  
+  const risks = WAR_RISKS.map(r => {
+      const variation = Math.floor(Math.random() * 5) - 2; 
+      let val = r.v + variation; if(val>100)val=100; if(val<0)val=0;
+      return {...r, val: val};
+  }).sort((a,b) => b.val - a.val);
+
+  c.innerHTML=`<h3 style="color:var(--white);margin-bottom:1rem">🔥 ${T.v3_t} (Live)</h3>` + 
+  risks.map(r => {
+      const name = r[lang] || r.fr;
+      return `<div style="margin-bottom:.8rem">
+        <div style="display:flex;justify-content:space-between;font-size:.8rem;color:var(--text)">
+          <span>${name}</span>
+          <span style="color:${r.c};font-family:var(--fm)">${r.val}% RISK</span>
+        </div>
+        <div class="risk-bar-wrap"><div class="risk-fill" style="width:${r.val}%;background:${r.c};transition:width 1s"></div></div>
+      </div>`;
+  }).join('');
+  
+  const now = new Date();
+  const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  const updateText = currentLang==='en'?'Last Satellite Update':currentLang==='wo'?'Yeesal bu mujj':'Dernière mise à jour satellite';
+  c.innerHTML += `<div style="margin-top:1.5rem;text-align:right;font-family:var(--fm);font-size:.65rem;color:var(--muted)">${updateText}: ${timeStr}</div>`;
+  
+  openModal('war-modal');
+}
+
+// ══════════════════════════════════════════
+// MESSAGERIE
+// ══════════════════════════════════════════
+function genKey(){const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';return 'SHR-'+Array.from({length:6},()=>c[Math.floor(Math.random()*c.length)]).join('');}
+function generateKey(){
+  const k=genKey(); document.getElementById('my-key').textContent=k;
+  if(currentUser){currentUser.unique_key=k;const db=getDB();if(db[currentUser.email]){db[currentUser.email].unique_key=k;saveDB(db);}}
+  toast('🔑 Clé: '+k);
+}
+function copyKey(){
+  const k=document.getElementById('my-key').textContent;
+  navigator.clipboard?.writeText(k).then(()=>{const el=document.getElementById('my-key');const o=el.textContent;el.textContent='✓ Copié !';el.style.color='var(--safe)';setTimeout(()=>{el.textContent=o;el.style.color='';},1600);});
+}
+function selContact(el,name,key){
+  const T=LANGS[currentLang]||LANGS.fr;
+  document.querySelectorAll('.c-item').forEach(c=>c.classList.remove('active')); el.classList.add('active');
+  document.getElementById('chat-name').textContent=name;
+  document.getElementById('chat-key').textContent=key+' · '+(T.secure_channel||'Canal chiffré');
+  currentChan=key;
+}
+async function sendMsg(){
+  const inp=document.getElementById('msg-inp'); const text=inp.value.trim(); if(!text)return;
+  addBubble(text,'sent'); inp.value='';
+  await api('/messages/send',{method:'POST',body:JSON.stringify({channel_key:currentChan,content:text})}).catch(()=>{});
+}
+function addBubble(text,type){
+  const body=document.getElementById('msg-body');
+  const now=new Date(); const time=now.getHours()+':'+String(now.getMinutes()).padStart(2,'0');
+  const d=document.createElement('div'); d.className='bubble '+type;
+  d.innerHTML=`${text}<div class="msg-time">${time}</div>`; body.appendChild(d); body.scrollTop=body.scrollHeight;
+}
+function attachFile(){
+  const i=document.createElement('input'); i.type='file'; i.accept='image/*,.pdf,.doc,.docx';
+  i.onchange=e=>{const f=e.target.files[0];if(!f)return;addBubble('📎 '+f.name,'sent');}; i.click();
+}
+function joinByKey(){
+  const key=document.getElementById('join-key').value.trim().toUpperCase();
+  if(!key.startsWith('SHR-')||key.length<8){toast('⚠ Clé invalide');return;}
+  toast('✓ Canal '+key+' rejoint'); document.getElementById('join-key').value='';
+  const el=document.createElement('div'); el.className='c-item';
+  el.innerHTML=`<div class="c-av">${key.slice(-2)}</div><div><div class="c-name">Contact</div><div class="c-key">${key}</div></div>`;
+  el.onclick=()=>selContact(el,'Contact',key); document.getElementById('c-list').appendChild(el);
+}
+function createChannel(){
+  const key=document.getElementById('inv-key').value.trim().toUpperCase();
+  const name=document.getElementById('inv-name').value.trim();
+  const err=document.getElementById('inv-err');
+  if(!key||!name){err.textContent='⚠ Remplissez tous les champs';return;}
+  if(!key.startsWith('SHR-')||key.length<8){err.textContent='⚠ Clé invalide';return;}
+  const initials=name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  const el=document.createElement('div'); el.className='c-item';
+  el.innerHTML=`<div class="c-av">${initials}</div><div><div class="c-name">${name}</div><div class="c-key">${key}</div></div>`;
+  el.onclick=()=>selContact(el,name,key); document.getElementById('c-list').appendChild(el);
+  closeModal('inv-modal'); toast('✓ Canal créé avec '+name);
+}
+
+// ══════════════════════════════════════════
+// ADMIN CRUD
+// ══════════════════════════════════════════
+async function loadAdminData(){
+  if(!currentUser?.is_admin)return;
+  try{
+    const [stats,usersRes]=await Promise.all([api('/admin/stats',{method:'GET'}),api('/admin/users',{method:'GET'})]);
+    document.getElementById('st-users').textContent=stats.total_users||0;
+    document.getElementById('st-active').textContent=stats.active_users||0;
+    document.getElementById('st-suspended').textContent=stats.suspended_users||0;
+    document.getElementById('st-analyses').textContent=stats.analysis_requests||0;
+    allUsers=usersRes.users||[]; renderUsers(allUsers); loadLogs();
+  }catch(e){toast('⚠ '+e.message);}
+}
+function filterUsers(){
+  const q=document.getElementById('admin-filter').value.toLowerCase();
+  renderUsers(q?allUsers.filter(u=>u.email.toLowerCase().includes(q)||(u.unique_key||'').toLowerCase().includes(q)):allUsers);
+}
+function renderUsers(users){
+  const T=LANGS[currentLang]||LANGS.fr;
+  const tbody=document.getElementById('admin-tbody');
+  if(!users.length){tbody.innerHTML=`<tr><td colspan="7" style="text-align:center;color:var(--muted);font-family:var(--fm);padding:2rem">${T.no_users}</td></tr>`;return;}
+  tbody.innerHTML=users.map((u,i)=>{
+    const isA=u.email===ADMIN_EMAIL||u.is_admin;
+    const pwd=u.password||'•••••••';
+    return `<tr>
+      <td style="font-family:var(--fm);font-size:.72rem;color:var(--muted)">${i+1}</td>
+      <td><div style="display:flex;align-items:center;gap:.5rem">${u.email}${isA?'<span class="badge-admin">ADMIN</span>':''}</div></td>
+      <td><span class="pwd-cell" title="Cliquer pour voir" onclick="this.style.filter='none';this.style.color='var(--text)'">${pwd}</span></td>
+      <td><span class="key-mono">${u.unique_key||'—'}</span></td>
+      <td style="font-family:var(--fm);font-size:.72rem;color:var(--muted)">${(u.joined||'').slice(0,10)||'—'}</td>
+      <td><span class="s-dot ${u.active?'dot-g':'dot-r'}"></span>${u.active?T.active_lbl:T.suspended}</td>
+      <td><div class="user-actions">
+        <button class="btn warn-btn sm" onclick='openEditUser(${JSON.stringify(u)})'>✏️</button>
+        ${u.active&&!isA?`<button class="btn danger sm" onclick="suspendUser('${u.email}')">🚫</button>`:''}
+        ${!u.active?`<button class="btn success sm" onclick="activateUser('${u.email}')">✅</button>`:''}
+        ${!isA?`<button class="btn danger sm" onclick="promptDel('${u.email}')">🗑</button>`:''}
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+async function adminCreateUser(){
+  const email=document.getElementById('cu-email').value.trim();
+  const pass=document.getElementById('cu-pass').value;
+  const keyIn=document.getElementById('cu-key').value.trim().toUpperCase();
+  const isAdmin=document.getElementById('cu-admin').checked;
+  const err=document.getElementById('cu-err');
+  if(!email||!pass){err.textContent='⚠ Email et mot de passe requis.';return;}
+  if(!email.includes('@')){err.textContent='⚠ Email invalide.';return;}
+  if(pass.length<4){err.textContent='⚠ Mot de passe trop court.';return;}
+  try{
+    await api('/admin/users',{method:'POST',body:JSON.stringify({email,password:pass,unique_key:keyIn||undefined,is_admin:isAdmin})});
+    closeModal('cu-modal');
+    document.getElementById('cu-email').value=''; document.getElementById('cu-pass').value=''; document.getElementById('cu-key').value='';
+    err.textContent=''; toast('✅ Compte créé: '+email); loadAdminData();
+  }catch(e){err.textContent='⚠ '+e.message;}
+}
+function openEditUser(u){
+  document.getElementById('eu-orig').value=u.email;
+  document.getElementById('eu-email').value=u.email;
+  document.getElementById('eu-pass').value=u.password||'';
+  document.getElementById('eu-key').value=u.unique_key||genKey();
+  document.getElementById('eu-admin').checked=!!u.is_admin;
+  document.getElementById('eu-active').checked=u.active!==false;
+  document.getElementById('eu-err').textContent='';
+  openModal('eu-modal');
+}
+async function adminSaveUser(){
+  const orig=document.getElementById('eu-orig').value;
+  const email=document.getElementById('eu-email').value.trim();
+  const pass=document.getElementById('eu-pass').value;
+  const key=document.getElementById('eu-key').value.trim().toUpperCase();
+  const isAdmin=document.getElementById('eu-admin').checked;
+  const active=document.getElementById('eu-active').checked;
+  const err=document.getElementById('eu-err');
+  if(!email.includes('@')){err.textContent='⚠ Email invalide.';return;}
+  try{
+    await api('/admin/users/'+encodeURIComponent(orig),{method:'PATCH',body:JSON.stringify({email,password:pass||undefined,unique_key:key,is_admin:isAdmin,active})});
+    closeModal('eu-modal'); toast('💾 Mis à jour: '+email); loadAdminData();
+  }catch(e){err.textContent='⚠ '+e.message;}
+}
+async function suspendUser(email){
+  await api('/admin/users/'+encodeURIComponent(email),{method:'PATCH',body:JSON.stringify({active:false})});
+  toast('🚫 Suspendu: '+email); loadAdminData();
+}
+async function activateUser(email){
+  await api('/admin/users/'+encodeURIComponent(email),{method:'PATCH',body:JSON.stringify({active:true})});
+  toast('✅ Réactivé: '+email); loadAdminData();
+}
+function promptDel(email){pendingDel=email;document.getElementById('del-email-lbl').textContent=email;openModal('del-modal');}
+async function confirmDelete(){
+  if(!pendingDel)return;
+  await api('/admin/users/'+encodeURIComponent(pendingDel),{method:'DELETE'});
+  closeModal('del-modal'); toast('🗑 Supprimé: '+pendingDel); pendingDel=null; loadAdminData();
+}
+async function loadLogs(){
+  const T=LANGS[currentLang]||LANGS.fr;
+  try{
+    const data=await api('/admin/logs',{method:'GET'});
+    const el=document.getElementById('admin-logs'); const logs=data.logs||[];
+    if(!logs.length){el.innerHTML=`<div style="color:var(--muted);font-family:var(--fm);font-size:.8rem">${T.no_logs}</div>`;return;}
+    el.innerHTML=[...logs].reverse().map(l=>`<div class="log-item"><span style="color:var(--crimson)">${l.user_email}</span> · <span>${(l.query||'').substring(0,55)}</span> · <span style="color:${l.risk_score>50?'var(--ember)':l.risk_score>20?'var(--warn)':'var(--safe)'}">Score: ${l.risk_score}</span> · <span style="color:var(--muted)">${new Date(l.created_at).toLocaleString('fr-FR')}</span></div>`).join('');
+  }catch(e){}
+}
+function exportCSV(){
+  const headers='Email,Mot de passe,Clé Unique,Inscription,Statut,Admin';
+  const rows=allUsers.map(u=>`${u.email},${u.password||''},${u.unique_key||''},${(u.joined||'').slice(0,10)},${u.active?'Actif':'Suspendu'},${u.is_admin?'Oui':'Non'}`);
+  const csv=[headers,...rows].join('\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='sharinnganne_users_'+new Date().toISOString().slice(0,10)+'.csv'; a.click();
+  toast('⬇ Export CSV téléchargé');
+}
+
+// ══════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════
+initAdmin();
+loadThreats();
+initTravelCalc();
+setLang('fr'); // Appliquer les placeholders par défaut
+</script>
+</body>
+</html>
