@@ -517,6 +517,11 @@ body{background:var(--dark);color:var(--text);font-family:var(--fu);overflow-x:h
       <div class="msg-sidebar">
         <div class="msg-sh"><span data-t="channels">Canaux</span><span class="new-c" onclick="openModal('inv-modal')" data-t="new_chan">+ Nouveau</span></div>
         <div class="c-list" id="c-list">
+          <!-- CANAL PUBLIC GLOBAL -->
+          <div class="c-item" onclick="selContact(this,'🌍 GLOBAL PUBLIC','SHR-PUBLIC')" id="chan-global">
+            <div class="c-av" style="background:var(--white);color:var(--dark);border-color:var(--white)">GP</div>
+            <div><div class="c-name" style="color:var(--white);font-weight:bold">GLOBAL PUBLIC</div><div class="c-key" style="color:var(--safe)">Ligne Ouverte</div></div>
+          </div>
           <div class="c-item active" onclick="selContact(this,'Contact Alpha','SHR-4X7K')">
             <div class="c-av">CA</div><div><div class="c-name">Contact Alpha</div><div class="c-key">SHR-4X7K</div></div>
           </div>
@@ -555,22 +560,42 @@ body{background:var(--dark);color:var(--text);font-family:var(--fu);overflow-x:h
   <div class="page" id="page-veille">
     <div class="sh"><span class="sh-ic">🌍</span><div><h2 data-t="nav_watch">Veille Géopolitique</h2><p data-t="veille_sub">Afrique & Europe — Événements & Alertes</p></div></div>
     
+    <!-- SECTION VIDEO DIRECT -->
+    <div style="margin-bottom:1.5rem;background:var(--panel);border:1px solid var(--border);border-radius:4px;overflow:hidden">
+      <div style="background:var(--blood);color:var(--white);padding:0.5rem 1rem;font-family:var(--fb);font-size:0.85rem;display:flex;justify-content:space-between;align-items:center">
+        <span>🔴 DIRECT INFO MONDE</span>
+        <span style="font-size:0.7rem;animation:blink 1s infinite">LIVE</span>
+      </div>
+      <div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;">
+        <iframe style="position:absolute;top:0;left:0;width:100%;height:100%;" src="https://www.youtube.com/embed/na99d08W6Xo?autoplay=1&mute=1" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+      </div>
+    </div>
+
     <div class="maps-row">
       <div class="map-card">
         <div style="font-family:var(--fb);font-size:.9rem;color:var(--white);letter-spacing:.1em">AFRIQUE & EUROPE</div>
         <div class="map-vis">
-          <!-- Real Unsplash Map: Europe/Africa View (Earth from Space) -->
-          <img src="https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=600&q=80" alt="Map Africa Europe" loading="lazy">
-          <div style="position:absolute;bottom:5px;right:5px;font-size:0.6rem;color:var(--crimson);background:rgba(0,0,0,0.7);padding:2px 4px;border-radius:2px">SATELLITE VIEW</div>
+          <img src="./assettes/carte_monde.png" alt="Carte Monde Locale" loading="lazy" onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=600&q=80'">
+          <div style="position:absolute;bottom:5px;right:5px;font-size:0.6rem;color:var(--crimson);background:rgba(0,0,0,0.7);padding:2px 4px;border-radius:2px">LOCAL ASSET</div>
         </div>
       </div>
       <div class="map-card">
-        <div style="font-family:var(--fb);font-size:.9rem;color:var(--white);letter-spacing:.1em" data-t="map_global">MONDE GLOBAL</div>
+        <div style="font-family:var(--fb);font-size:.9rem;color:var(--white);letter-spacing:.1em" data-t="map_global">MONDE GLOBAL (IA PREDICTION)</div>
         <div class="map-vis">
-          <!-- Real Unsplash Map: World Map Abstract -->
           <img src="https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?auto=format&fit=crop&w=600&q=80" alt="World Map" loading="lazy">
+          <div id="weather-overlay" style="position:absolute;top:10px;left:10px;background:rgba(0,0,0,0.75);padding:8px;border-radius:4px;width:150px;border:1px solid var(--border);backdrop-filter:blur(2px)">
+             <div style="font-family:var(--fm);font-size:0.65rem;color:var(--muted);margin-bottom:5px;letter-spacing:0.1em">MÉTÉO DIRECT</div>
+             <div class="loading" style="font-size:0.7rem">Connexion sat...</div>
+          </div>
         </div>
       </div>
+    </div>
+    
+    <div class="map-card" style="margin-bottom: 1.5rem;">
+        <div style="font-family:var(--fb);font-size:.9rem;color:var(--white);letter-spacing:.1em" data-t="cyber_flux_title">FLUX CYBERATTAQUES MONDIALES (TEMPS RÉEL)</div>
+        <div class="map-vis" style="height: 300px; background: #000;">
+            <canvas id="cyber-map-canvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></canvas>
+        </div>
     </div>
 
     <div style="font-family:var(--fm);font-size:.66rem;color:var(--muted);letter-spacing:.2em;text-transform:uppercase;margin-bottom:.8rem" data-t="live_alerts_title">📡 FLUX D'ALERTES EN TEMPS RÉEL</div>
@@ -632,6 +657,19 @@ body{background:var(--dark);color:var(--text);font-family:var(--fu);overflow-x:h
   <!-- ADMIN -->
   <div class="page" id="page-admin">
     <div class="sh"><span class="sh-ic">⚙️</span><div><h2 data-t="nav_admin">Panel de Contrôle Admin</h2><p>usersdbsn@gmail.com — Supabase</p></div></div>
+    
+    <!-- SECTION HÉBERGEMENT LOCAL -->
+    <div style="background:var(--void);border:1px solid var(--border);border-left:3px solid var(--safe);border-radius:4px;padding:1rem;margin-bottom:1.5rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap">
+      <div>
+        <div style="font-family:var(--fb);font-size:1rem;color:var(--white);margin-bottom:0.3rem">📡 HÉBERGEMENT LOCAL (TUNNEL)</div>
+        <div style="font-size:0.8rem;color:var(--sub)">Rendre ce site local accessible via une URL publique (GitHub/Localtunnel).</div>
+      </div>
+      <div style="text-align:right">
+        <button class="btn success" onclick="startTunnel()" id="btn-tunnel">GÉNÉRER URL</button>
+        <div id="tunnel-url" style="font-family:var(--fm);color:var(--safe);margin-top:0.5rem;font-size:0.9rem;user-select:text!important"></div>
+      </div>
+    </div>
+
     <div class="stat-cards">
       <div class="stat-card"><div class="stat-val" id="st-users">—</div><div class="stat-lbl" data-t="stat_users">Utilisateurs</div></div>
       <div class="stat-card"><div class="stat-val" id="st-active">—</div><div class="stat-lbl" data-t="stat_active">Comptes actifs</div></div>
@@ -789,6 +827,7 @@ const LANGS = {
     cgu_version: "Version 1.0 · Mars 2026 · Dakar, Sénégal", contact_lbl: "Contact",
     footer_copy: "© 2026 SHARINNGANNE — Seydou Bakhayokho", badge_admin: "ADMIN",
     loading: "Chargement...", no_threats: "Aucune menace", no_users: "Aucun utilisateur",
+    cyber_flux_title: 'FLUX CYBERATTAQUES MONDIALES (TEMPS RÉEL)',
     map_global: "MONDE GLOBAL", travel_title: "CALCULATEUR DE TRAJET & FUSEAUX",
     lbl_origin: "Origine", lbl_dest: "Destination", calc_btn: "CALCULER",
     dist_lbl: "Distance", flight_lbl: "Durée Vol (estimée)", time_lbl: "Décalage Horaire",
@@ -874,6 +913,7 @@ const LANGS = {
     cgu_version: "Version 1.0 · March 2026 · Dakar, Senegal", contact_lbl: "Contact",
     footer_copy: "© 2026 SHARINNGANNE — Seydou Bakhayokho", badge_admin: "ADMIN",
     loading: "Loading...", no_threats: "No threats", no_users: "No users",
+    cyber_flux_title: 'REAL-TIME GLOBAL CYBERATTACK FEED',
     map_global: "GLOBAL WORLD", travel_title: "TRAVEL & TIMEZONE CALCULATOR",
     lbl_origin: "Origin", lbl_dest: "Destination", calc_btn: "CALCULATE",
     dist_lbl: "Distance", flight_lbl: "Flight Duration (est.)", time_lbl: "Time Difference",
@@ -959,6 +999,7 @@ const LANGS = {
     cgu_version: "Version 1.0 · Maars 2026 · Dakar, Senegal", contact_lbl: "Jokko",
     footer_copy: "© 2026 SHARINNGANNE — Seydou Bakhayokho", badge_admin: "ADMIN",
     loading: "Mingiy yeb...", no_threats: "Benn menace amul", no_users: "Kenn nekkul fi",
+    cyber_flux_title: 'CYBERATTAQUES CI ÀDDUNA BI (LIVE)',
     map_global: "ÀDDUNA BI", travel_title: "XAYMA YOONU TUKKI & WAXTU",
     lbl_origin: "Foy jogé", lbl_dest: "Foy dem", calc_btn: "XAYMA",
     dist_lbl: "Soriway", flight_lbl: "Diru Ropplaan", time_lbl: "Wuute Waxtu",
@@ -1118,7 +1159,7 @@ function showPage(n){
     burger.classList.remove('open');
   }
   if(n==='threats')loadThreats();
-  if(n==='veille')initVeilleFeed();
+  if(n==='veille'){initVeilleFeed();initWeather();initCyberMap();}
   if(n==='admin')loadAdminData();
 }
 function toggleMobileNav(){
@@ -1129,6 +1170,20 @@ function toggleMobileNav(){
   burger.classList.toggle('open', isOpen);
 }
 function openModal(id){document.getElementById(id).classList.add('active');}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 function closeModal(id){document.getElementById(id).classList.remove('active');}
 document.querySelectorAll('.modal-ov').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('active');}));
 function openLink(url){window.open(url,'_blank');}
@@ -1741,6 +1796,130 @@ function openWarModal(){
 }
 
 // ══════════════════════════════════════════
+// API MÉTÉO (OPEN-METEO)
+// ══════════════════════════════════════════
+async function initWeather() {
+  const el = document.getElementById('weather-overlay');
+  if(!el || el.dataset.loaded) return;
+  
+  // Coordonnées : Dakar, Paris, Moscou, New York, Tokyo
+  const cities = [
+    {n:'Dakar', lat:14.71, lon:-17.46},
+    {n:'Paris', lat:48.85, lon:2.35},
+    {n:'Moscou', lat:55.75, lon:37.61},
+    {n:'New York', lat:40.71, lon:-74.00},
+    {n:'Tokyo', lat:35.67, lon:139.65}
+  ];
+  
+  const latStr = cities.map(c=>c.lat).join(',');
+  const lonStr = cities.map(c=>c.lon).join(',');
+  
+  try {
+    const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latStr}&longitude=${lonStr}&current_weather=true`);
+    const data = await res.json();
+    const results = Array.isArray(data) ? data : [data];
+    
+    let h = '<div style="font-family:var(--fm);font-size:0.65rem;color:var(--crimson);margin-bottom:6px;letter-spacing:0.1em;border-bottom:1px solid var(--border);padding-bottom:2px">MÉTÉO MONDIALE</div>';
+    
+    results.forEach((d, i) => {
+      const c = cities[i], w = d.current_weather, code = w.weathercode;
+      const ic = code<=1?'☀️':code<=3?'⛅':code<=48?'🌫️':code<=67?'🌧️':code<=77?'❄️':'⛈️';
+      h += `<div style="display:flex;justify-content:space-between;align-items:center;font-size:0.75rem;margin-bottom:4px;color:var(--text)"><span>${c.n}</span><span style="font-family:var(--fm);color:var(--white)">${ic} ${Math.round(w.temperature)}°</span></div>`;
+    });
+    el.innerHTML = h; el.dataset.loaded = "true";
+  } catch(e) {
+    el.innerHTML = '<div style="color:var(--ember);font-size:0.7rem">Signal perdu</div>';
+  }
+}
+
+// ══════════════════════════════════════════
+// CYBERATTACK HEATMAP
+// ══════════════════════════════════════════
+let cyberMapInitialized = false;
+function initCyberMap() {
+    if (cyberMapInitialized) return;
+    const canvas = document.getElementById('cyber-map-canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    
+    let width = canvas.offsetWidth;
+    let height = canvas.offsetHeight;
+    canvas.width = width;
+    canvas.height = height;
+
+    const mapImage = new Image();
+    mapImage.src = 'https://i.imgur.com/vC9A9qs.png'; // Simple world map outline
+
+    const nodes = [
+        { x: 0.50, y: 0.42 }, // Europe (Paris)
+        { x: 0.18, y: 0.45 }, // US East Coast (NY)
+        { x: 0.88, y: 0.45 }, // East Asia (Tokyo)
+        { x: 0.48, y: 0.58 }, // West Africa (Dakar)
+        { x: 0.65, y: 0.35 }, // Russia (Moscow)
+        { x: 0.30, y: 0.75 }, // South America (Brazil)
+        { x: 0.75, y: 0.80 }, // Australia
+        { x: 0.68, y: 0.55 }, // Middle East
+        { x: 0.80, y: 0.60 }, // Southeast Asia
+    ];
+
+    let attacks = [];
+
+    function createAttack() {
+        const startNode = nodes[Math.floor(Math.random() * nodes.length)];
+        let endNode = nodes[Math.floor(Math.random() * nodes.length)];
+        while (startNode === endNode) {
+            endNode = nodes[Math.floor(Math.random() * nodes.length)];
+        }
+
+        attacks.push({
+            start: { x: startNode.x * width, y: startNode.y * height },
+            end: { x: endNode.x * width, y: endNode.y * height },
+            progress: 0,
+            color: ['#FF2200', '#FF4400', '#CC0000'][Math.floor(Math.random() * 3)],
+            speed: 0.005 + Math.random() * 0.01
+        });
+    }
+
+    function animate() {
+        if(document.getElementById('page-veille')?.classList.contains('active') === false) return; // Pause if not visible
+        width = canvas.offsetWidth; height = canvas.offsetHeight;
+        if (canvas.width !== width || canvas.height !== height) { canvas.width = width; canvas.height = height; }
+
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.1)'; ctx.fillRect(0, 0, width, height);
+
+        if (mapImage.complete) { ctx.globalAlpha = 0.2; ctx.drawImage(mapImage, 0, 0, width, height); ctx.globalAlpha = 1; }
+
+        ctx.fillStyle = 'rgba(204, 0, 0, 0.5)';
+        nodes.forEach(node => { ctx.beginPath(); ctx.arc(node.x * width, node.y * height, 3, 0, Math.PI * 2); ctx.fill(); });
+
+        attacks.forEach((attack, index) => {
+            attack.progress += attack.speed;
+            if (attack.progress >= 1) {
+                ctx.fillStyle = attack.color; ctx.beginPath(); ctx.arc(attack.end.x, attack.end.y, 5, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = 'rgba(255,255,255,0.8)'; ctx.beginPath(); ctx.arc(attack.end.x, attack.end.y, 2, 0, Math.PI * 2); ctx.fill();
+                attacks.splice(index, 1); return;
+            }
+
+            const currentX = attack.start.x + (attack.end.x - attack.start.x) * attack.progress;
+            const currentY = attack.start.y + (attack.end.y - attack.start.y) * attack.progress;
+            
+            const controlX = (attack.start.x + attack.end.x) / 2;
+            const controlY = (attack.start.y + attack.end.y) / 2 - 50 * Math.sin(attack.progress * Math.PI);
+            ctx.beginPath(); ctx.moveTo(attack.start.x, attack.start.y); ctx.quadraticCurveTo(controlX, controlY, currentX, currentY);
+            ctx.strokeStyle = attack.color; ctx.lineWidth = 0.5; ctx.stroke();
+
+            ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(currentX, currentY, 1.5, 0, Math.PI * 2); ctx.fill();
+        });
+
+        if (Math.random() < 0.1 && attacks.length < 50) createAttack();
+        requestAnimationFrame(animate);
+    }
+
+    mapImage.onload = () => { if(!cyberMapInitialized) { cyberMapInitialized = true; animate(); } };
+    if (mapImage.complete && !cyberMapInitialized) { cyberMapInitialized = true; animate(); }
+}
+
+// ══════════════════════════════════════════
 // MESSAGERIE
 // ══════════════════════════════════════════
 function genKey(){const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';return 'SHR-'+Array.from({length:6},()=>c[Math.floor(Math.random()*c.length)]).join('');}
@@ -1757,19 +1936,73 @@ function selContact(el,name,key){
   const T=LANGS[currentLang]||LANGS.fr;
   document.querySelectorAll('.c-item').forEach(c=>c.classList.remove('active')); el.classList.add('active');
   document.getElementById('chat-name').textContent=name;
-  document.getElementById('chat-key').textContent=key+' · '+(T.secure_channel||'Canal chiffré');
+  
+  // Gestion spéciale pour le canal public
+  if(key === 'SHR-PUBLIC') {
+    document.getElementById('chat-key').innerHTML = `<span style="color:var(--safe)">● ONLINE</span> · Visible par tout le monde`;
+    document.querySelector('.e2e').style.display = 'none';
+  } else {
+    document.getElementById('chat-key').textContent=key+' · '+(T.secure_channel||'Canal chiffré');
+    document.querySelector('.e2e').style.display = 'block';
+  }
+  
   currentChan=key;
+  // Recharger les messages pour ce canal (simulation api ou réel)
+  loadMessagesForChannel(key);
+}
+
+// Fonction pour charger les messages (polling simulé ou réel)
+let msgInterval;
+async function loadMessagesForChannel(key) {
+  const body = document.getElementById('msg-body');
+  body.innerHTML = '<div class="loading">Chargement...</div>';
+  
+  if(msgInterval) clearInterval(msgInterval);
+  
+  const fetchMsgs = async () => {
+    try {
+      const data = await api('/messages/'+key, {method:'GET'});
+      const msgs = data.messages || [];
+      
+      body.innerHTML = ''; // Clear loading
+      if(msgs.length === 0) {
+        body.innerHTML = `<div style="text-align:center;color:var(--muted);font-size:0.8rem;margin-top:2rem">Début de la discussion sur ${key}</div>`;
+      }
+      
+      msgs.forEach(m => {
+        const isMe = m.sender === currentUser.email;
+        addBubble(m.content, isMe ? 'sent' : 'recv', m.sender);
+      });
+    } catch(e) {
+      if(key === 'SHR-PUBLIC') {
+         // Démo pour le chat public si pas de backend
+         body.innerHTML = '';
+         addBubble("Bienvenue dans le chat public mondial.", "recv", "Système");
+         addBubble("Ici, tous les messages sont permanents et visibles.", "recv", "Admin");
+      }
+    }
+  };
+  
+  fetchMsgs();
+  // Rafraîchir toutes les 5 secondes
+  msgInterval = setInterval(fetchMsgs, 5000);
 }
 async function sendMsg(){
   const inp=document.getElementById('msg-inp'); const text=inp.value.trim(); if(!text)return;
   addBubble(text,'sent'); inp.value='';
   await api('/messages/send',{method:'POST',body:JSON.stringify({channel_key:currentChan,content:text})}).catch(()=>{});
 }
-function addBubble(text,type){
+function addBubble(text,type, sender=null){
   const body=document.getElementById('msg-body');
   const now=new Date(); const time=now.getHours()+':'+String(now.getMinutes()).padStart(2,'0');
   const d=document.createElement('div'); d.className='bubble '+type;
-  d.innerHTML=`${text}<div class="msg-time">${time}</div>`; body.appendChild(d); body.scrollTop=body.scrollHeight;
+  
+  let senderHtml = '';
+  if(sender && currentChan === 'SHR-PUBLIC' && type === 'recv') {
+      senderHtml = `<div style="font-size:0.65rem;color:var(--crimson);margin-bottom:2px;font-family:var(--fm)">${sender.split('@')[0]}</div>`;
+  }
+  
+  d.innerHTML=`${senderHtml}${text}<div class="msg-time">${time}</div>`; body.appendChild(d); body.scrollTop=body.scrollHeight;
 }
 function attachFile(){
   const i=document.createElement('input'); i.type='file'; i.accept='image/*,.pdf,.doc,.docx';
@@ -1900,6 +2133,34 @@ async function loadLogs(){
     el.innerHTML=[...logs].reverse().map(l=>`<div class="log-item"><span style="color:var(--crimson)">${l.user_email}</span> · <span>${(l.query||'').substring(0,55)}</span> · <span style="color:${l.risk_score>50?'var(--ember)':l.risk_score>20?'var(--warn)':'var(--safe)'}">Score: ${l.risk_score}</span> · <span style="color:var(--muted)">${new Date(l.created_at).toLocaleString('fr-FR')}</span></div>`).join('');
   }catch(e){}
 }
+
+// ══════════════════════════════════════════
+// FONCTION HÉBERGEMENT (TUNNEL)
+// ══════════════════════════════════════════
+async function startTunnel() {
+  const btn = document.getElementById('btn-tunnel');
+  const out = document.getElementById('tunnel-url');
+  
+  btn.disabled = true; 
+  btn.textContent = 'ACTIVATION...';
+  
+  try {
+    const data = await api('/admin/tunnel', {method:'POST'});
+    if(data.url) {
+      out.innerHTML = `URL EN LIGNE: <a href="${data.url}" target="_blank" style="color:var(--safe);text-decoration:underline">${data.url}</a>`;
+      toast('✓ Site en ligne !');
+      btn.textContent = 'EN LIGNE ●';
+      btn.style.background = 'var(--panel)';
+      btn.style.border = '1px solid var(--safe)';
+      btn.style.color = 'var(--safe)';
+    }
+  } catch(e) {
+    toast('Erreur: ' + e.message);
+    btn.textContent = 'RÉESSAYER';
+    btn.disabled = false;
+  }
+}
+
 function exportCSV(){
   const headers='Email,Mot de passe,Clé Unique,Inscription,Statut,Admin';
   const rows=allUsers.map(u=>`${u.email},${u.password||''},${u.unique_key||''},${(u.joined||'').slice(0,10)},${u.active?'Actif':'Suspendu'},${u.is_admin?'Oui':'Non'}`);

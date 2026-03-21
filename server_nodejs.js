@@ -50,7 +50,7 @@ app.use(helmet({
       styleSrc:       ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
       fontSrc:        ["'self'", 'https://fonts.gstatic.com'],
       imgSrc:         ["'self'", 'data:', 'https:'],
-      connectSrc:     ["'self'", SUPABASE_URL],
+      connectSrc:     ["'self'", SUPABASE_URL, "https://api.open-meteo.com"],
       frameSrc:       ["'none'"],
       objectSrc:      ["'none'"],
       upgradeInsecureRequests: [],
