@@ -22,6 +22,8 @@
 <title>SHARINNGANNE — Voir. Prévoir. Protéger.</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Cinzel:wght@400;600;700&family=Rajdhani:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 *{-webkit-user-select:none!important;-moz-user-select:none!important;user-select:none!important;-webkit-touch-callout:none!important}
@@ -86,6 +88,8 @@ body{background:var(--dark);color:var(--text);font-family:var(--fu);overflow-x:h
 .terms-row{display:flex;align-items:flex-start;gap:.6rem;font-size:.8rem;color:var(--sub);line-height:1.45}
 .terms-row input{accent-color:var(--crimson);margin-top:2px;flex-shrink:0}
 .terms-link{color:var(--crimson);cursor:pointer;text-decoration:underline;background:none;border:none;font-size:.8rem;font-family:var(--fu)}
+.cgu-btn{background:transparent;border:1px solid var(--border);color:var(--muted);padding:.6rem 1.4rem;border-radius:50px;cursor:pointer;font-family:var(--fu);font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;transition:all .25s;text-decoration:none;margin-top:.5rem}
+.cgu-btn:hover{border-color:var(--crimson);color:var(--white);background:rgba(139,0,0,0.12);box-shadow:0 4px 15px rgba(100,0,0,.2);transform:translateY(-1px)}
 .topbar{display:flex;align-items:center;justify-content:space-between;padding:.65rem 1.4rem;background:rgba(8,2,2,.97);border-bottom:1px solid var(--border);backdrop-filter:blur(14px);position:sticky;top:0;z-index:100;box-shadow:0 2px 24px rgba(100,0,0,.22)}
 .t-logo{display:flex;align-items:center;gap:.75rem;text-decoration:none;cursor:pointer}
 .t-logo-img{width:32px;height:32px;animation:glow-pulse 3.5s ease-in-out infinite;flex-shrink:0}
@@ -230,6 +234,13 @@ body{background:var(--dark);color:var(--text);font-family:var(--fu);overflow-x:h
 .log-item{padding:.4rem .75rem;background:rgba(0,0,0,.3);border-radius:2px;border-left:2px solid var(--border);font-family:var(--fm);font-size:.72rem;line-height:1.5;margin-bottom:.35rem;overflow-wrap:anywhere}
 #cgu-screen{align-items:center;justify-content:flex-start;padding:3rem 1.5rem;min-height:100vh}
 .cgu-wrap{max-width:820px;width:100%;margin:0 auto}
+.console-box{background:#000;border:1px solid #333;border-radius:4px;padding:1rem;font-family:var(--fm);color:#00FF00;height:350px;overflow-y:auto;font-size:0.8rem;margin-bottom:1.5rem;box-shadow:inset 0 0 20px rgba(0,20,0,0.5)}
+.console-line{margin-bottom:4px;word-break:break-all}
+.console-info{color:#00CC44}
+.console-warn{color:#FF8800}
+.console-err{color:#FF2200;font-weight:bold}
+.console-sys{color:#0088FF}
+.vuln-card{background:rgba(20,0,0,0.4);border-left:3px solid var(--border);padding:0.8rem;margin-bottom:0.5rem}
 .cgu-header{text-align:center;margin-bottom:3rem;padding-bottom:2rem;border-bottom:1px solid var(--border)}
 .cgu-title{font-family:var(--ft);font-size:clamp(1.5rem,4vw,2.5rem);color:var(--white);text-shadow:0 0 24px rgba(200,0,0,.5);margin-bottom:.5rem}
 .cgu-date{font-family:var(--fm);font-size:.7rem;color:var(--muted);letter-spacing:.2em}
@@ -266,6 +277,9 @@ body{background:var(--dark);color:var(--text);font-family:var(--fu);overflow-x:h
 .map-vis{width:100%;height:200px;background:rgba(0,0,0,.3);border:1px solid var(--border);margin-top:.8rem;position:relative;overflow:hidden;border-radius:2px}
 .map-vis img{width:100%;height:100%;object-fit:cover;opacity:.8;transition:opacity .5s}
 .map-vis:hover img{opacity:1;transform:scale(1.02)}
+.leaflet-map-host{height:280px;width:100%;min-height:220px;border-radius:2px;border:1px solid var(--border);z-index:1}
+.leaflet-container{background:var(--void);font-family:var(--fu)}
+.leaflet-control-attribution{font-size:10px!important;max-width:60%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .alert-box{background:var(--void);border:1px solid var(--border);border-left:3px solid var(--crimson);border-radius:4px;padding:1rem;margin-bottom:1.5rem;height:200px;overflow-y:auto}
 .alert-item{padding:.6rem 0;border-bottom:1px solid rgba(100,0,0,.2);display:flex;gap:.8rem;align-items:flex-start}
 .alert-time{font-family:var(--fm);font-size:.7rem;color:var(--crimson);white-space:nowrap}
@@ -282,6 +296,7 @@ body{background:var(--dark);color:var(--text);font-family:var(--fu);overflow-x:h
   .msg-layout{grid-template-columns:1fr;height:auto;min-height:0}
   .msg-sidebar{display:none}
   .ioc-grid{grid-template-columns:1fr}
+  .leaflet-map-host{height:240px;min-height:200px}
 }
 </style>
 </head>
@@ -391,7 +406,7 @@ body{background:var(--dark);color:var(--text);font-family:var(--fu);overflow-x:h
     </div>
   </div>
   <div style="margin-top:1.2rem;font-family:var(--fm);font-size:.68rem;color:var(--muted);text-align:center">
-    <button class="terms-link" onclick="showScreen('cgu')" data-t="cgu_link">📜 Conditions d'Utilisation</button>
+    <button class="cgu-btn" onclick="showScreen('cgu')" data-t="cgu_link">📜 Conditions d'Utilisation</button>
   </div>
 </div>
 
@@ -414,6 +429,7 @@ body{background:var(--dark);color:var(--text);font-family:var(--fu);overflow-x:h
       <button class="nav-btn" onclick="showPage('search')" data-t="nav_analyze">🔍 Analyser</button>
       <button class="nav-btn" onclick="showPage('threats')" data-t="nav_dark">🕸️ Dark Web</button>
       <button class="nav-btn" onclick="showPage('messages')" data-t="nav_msg">🔑 Messages</button>
+      <button class="nav-btn" onclick="showPage('pentest')" data-t="nav_pentest">💀 Pentest</button>
       <button class="nav-btn" onclick="showPage('veille')" data-t="nav_watch">🌍 Veille</button>
       <button class="nav-btn" onclick="showPage('ressources')" data-t="nav_res">📚 Ressources</button>
       <button class="nav-btn" id="admin-nav" onclick="showPage('admin')" style="display:none" data-t="nav_admin">⚙️ Admin</button>
@@ -432,6 +448,7 @@ body{background:var(--dark);color:var(--text);font-family:var(--fu);overflow-x:h
     <button class="nav-btn" onclick="showPage('search')" data-t="nav_analyze">🔍 Analyser</button>
     <button class="nav-btn" onclick="showPage('threats')" data-t="nav_dark">🕸️ Dark Web</button>
     <button class="nav-btn" onclick="showPage('messages')" data-t="nav_msg">🔑 Messages</button>
+    <button class="nav-btn" onclick="showPage('pentest')" data-t="nav_pentest">💀 Pentest</button>
     <button class="nav-btn" onclick="showPage('veille')" data-t="nav_watch">🌍 Veille</button>
     <button class="nav-btn" onclick="showPage('ressources')" data-t="nav_res">📚 Ressources</button>
     <button class="nav-btn" id="admin-nav-mobile" onclick="showPage('admin')" style="display:none" data-t="nav_admin">⚙️ Admin</button>
@@ -556,6 +573,45 @@ body{background:var(--dark);color:var(--text);font-family:var(--fu);overflow-x:h
     </div>
   </div>
 
+  <!-- PENTEST & SCAN -->
+  <div class="page" id="page-pentest">
+    <div class="sh"><span class="sh-ic">💀</span><div><h2 data-t="nav_pentest">Simulation Pentest & Scan</h2><p data-t="pentest_sub">Test d'intrusion · Déploiement GitHub · Audit de sécurité</p></div></div>
+    
+    <div style="display:flex;gap:1rem;margin-bottom:1rem;flex-wrap:wrap">
+      <div style="flex:1;display:flex;gap:0.5rem">
+        <input class="fi" id="pentest-target" type="text" placeholder="https://exemple.com" data-ph="pt_ph" onkeydown="if(event.key==='Enter')runPentest()"/>
+        <button class="btn danger" onclick="runPentest()" data-t="pt_btn_attack">LANCER L'ATTAQUE</button>
+      </div>
+      <button class="btn sec" onclick="openModal('github-modal')" style="border-color:#fff;color:#fff">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="margin-right:5px;vertical-align:middle"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+        <span data-t="pt_btn_git">Déployer & Scanner</span>
+      </button>
+      <button class="btn sec" onclick="runBruteForce()" style="border-color:var(--warn);color:var(--warn)">
+        <span data-t="pt_btn_bf">💥 Brute Force (Simu)</span>
+      </button>
+      <button class="btn sec" onclick="openModal('kali-modal')" style="border-color:var(--safe);color:var(--safe)">
+        <span data-t="pt_btn_kali">💻 Commandes Kali</span>
+      </button>
+      <button class="btn sec" onclick="openWhoisModal()" style="border-color:#0088FF;color:#0088FF">
+        <span data-t="pt_btn_whois">📋 Whois Lookup</span>
+      </button>
+      <button class="btn sec" onclick="openTechModal()" style="border-color:#AA00AA;color:#AA00AA">
+        <span data-t="pt_btn_tech">🛠️ Stack Detector</span>
+      </button>
+    </div>
+
+    <div class="console-box" id="pt-console">
+      <div class="console-line console-sys">> SHARINNGANNE PENTEST OS v3.0 initialized.</div>
+      <div class="console-line">> Waiting for target...</div>
+    </div>
+
+    <div id="pt-report" style="display:none;animation:fadeIn 0.5s ease">
+      <div class="sh" style="margin-top:2rem"><span class="sh-ic">📊</span><div><h2 data-t="pt_rep_title">Rapport d'Audit</h2></div></div>
+      <div class="grid" id="pt-grid"></div>
+      <div style="margin-top:1.5rem" id="pt-vulns"></div>
+    </div>
+  </div>
+
   <!-- VEILLE -->
   <div class="page" id="page-veille">
     <div class="sh"><span class="sh-ic">🌍</span><div><h2 data-t="nav_watch">Veille Géopolitique</h2><p data-t="veille_sub">Afrique & Europe — Événements & Alertes</p></div></div>
@@ -567,25 +623,25 @@ body{background:var(--dark);color:var(--text);font-family:var(--fu);overflow-x:h
         <span style="font-size:0.7rem;animation:blink 1s infinite">LIVE</span>
       </div>
       <div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;">
-        <iframe style="position:absolute;top:0;left:0;width:100%;height:100%;" src="https://www.youtube.com/embed/na99d08W6Xo?autoplay=1&mute=1" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+        <iframe style="position:absolute;top:0;left:0;width:100%;height:100%;border:0" src="https://www.youtube-nocookie.com/embed/live_stream?channel=UCNye-wNBqNL5ZzHSJJ3uhfg&autoplay=1&mute=1" title="Al Jazeera English — flux direct" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>
       </div>
+      <div style="padding:0.35rem 0.75rem;font-size:0.68rem;color:var(--muted);border-top:1px solid var(--border)">Si la vidéo ne charge pas (bloqueur ou mobile), <a href="https://www.youtube.com/c/aljazeeraenglish/live" target="_blank" rel="noopener noreferrer" style="color:var(--crimson)">ouvrir le direct sur YouTube</a>.</div>
     </div>
 
     <div class="maps-row">
       <div class="map-card">
-        <div style="font-family:var(--fb);font-size:.9rem;color:var(--white);letter-spacing:.1em">AFRIQUE & EUROPE</div>
-        <div class="map-vis">
-          <img src="./assettes/carte_monde.png" alt="Carte Monde Locale" loading="lazy" onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=600&q=80'">
-          <div style="position:absolute;bottom:5px;right:5px;font-size:0.6rem;color:var(--crimson);background:rgba(0,0,0,0.7);padding:2px 4px;border-radius:2px">LOCAL ASSET</div>
+        <div style="font-family:var(--fb);font-size:.9rem;color:var(--white);letter-spacing:.1em">AFRIQUE & EUROPE · OpenStreetMap</div>
+        <div class="map-vis" style="height:auto;padding:0;overflow:visible;background:transparent">
+          <div id="leaflet-map-afrique" class="leaflet-map-host" role="region" aria-label="Carte Afrique et Europe"></div>
         </div>
       </div>
       <div class="map-card">
-        <div style="font-family:var(--fb);font-size:.9rem;color:var(--white);letter-spacing:.1em" data-t="map_global">MONDE GLOBAL (IA PREDICTION)</div>
-        <div class="map-vis">
-          <img src="https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?auto=format&fit=crop&w=600&q=80" alt="World Map" loading="lazy">
-          <div id="weather-overlay" style="position:absolute;top:10px;left:10px;background:rgba(0,0,0,0.75);padding:8px;border-radius:4px;width:150px;border:1px solid var(--border);backdrop-filter:blur(2px)">
-             <div style="font-family:var(--fm);font-size:0.65rem;color:var(--muted);margin-bottom:5px;letter-spacing:0.1em">MÉTÉO DIRECT</div>
-             <div class="loading" style="font-size:0.7rem">Connexion sat...</div>
+        <div style="font-family:var(--fb);font-size:.9rem;color:var(--white);letter-spacing:.1em" data-t="map_global">MONDE · Carte temps réel</div>
+        <div class="map-vis" style="height:auto;padding:0;overflow:visible;background:transparent;position:relative">
+          <div id="leaflet-map-world" class="leaflet-map-host" role="region" aria-label="Carte monde"></div>
+          <div id="weather-overlay" style="position:absolute;top:10px;left:10px;z-index:500;background:rgba(0,0,0,0.82);padding:8px;border-radius:4px;min-width:140px;max-width:calc(100% - 20px);border:1px solid var(--border);backdrop-filter:blur(4px);pointer-events:none">
+             <div style="font-family:var(--fm);font-size:0.65rem;color:var(--muted);margin-bottom:5px;letter-spacing:0.1em">MÉTÉO (Open-Meteo)</div>
+             <div class="loading" style="font-size:0.7rem">Connexion...</div>
           </div>
         </div>
       </div>
@@ -651,7 +707,7 @@ body{background:var(--dark);color:var(--text);font-family:var(--fu);overflow-x:h
       <div class="res-card" onclick="openLink('https://www.freecodecamp.org/')"><span class="res-ic">💻</span><div><div class="res-title">freeCodeCamp</div><div class="res-tag" data-t="tag_dev">Dev Web gratuit</div></div></div>
     </div>
     <hr class="divider">
-    <div style="text-align:center;padding:1rem 0"><button class="terms-link" onclick="showScreen('cgu')" data-t="cgu_link">📜 Conditions d'Utilisation</button></div>
+    <div style="text-align:center;padding:1rem 0"><button class="cgu-btn" onclick="showScreen('cgu')" data-t="cgu_link">📜 Conditions d'Utilisation</button></div>
   </div>
 
   <!-- ADMIN -->
@@ -744,6 +800,66 @@ body{background:var(--dark);color:var(--text);font-family:var(--fu);overflow-x:h
     <div class="modal-footer"><button class="btn sec sm" onclick="closeModal('eu-modal')" data-t="cancel">Annuler</button><button class="btn warn-btn sm" onclick="adminSaveUser()" data-t="save">💾 Sauvegarder</button></div>
   </div>
 </div>
+<div class="modal-ov" id="github-modal">
+  <div class="modal">
+    <button class="modal-x" onclick="closeModal('github-modal')">✕</button>
+    <div class="modal-title" data-t="git_modal_t">🚀 Déploiement & Scan</div>
+    <div class="form">
+      <div><label class="fl">GitHub Repository URL</label><input class="fi" id="git-repo" type="text" placeholder="https://github.com/user/repo"/></div>
+      <div><label class="fl" data-t="git_target_lbl">Target / Production URL</label><input class="fi" id="git-url" type="text" placeholder="https://myapp.vercel.app"/></div>
+      <div class="ferr" id="git-err"></div>
+    </div>
+    <div class="modal-footer"><button class="btn sec sm" onclick="closeModal('github-modal')" data-t="cancel">Annuler</button><button class="btn success sm" onclick="runGitDeploy()" data-t="git_btn_run">Déployer & Scanner</button></div>
+  </div>
+</div>
+
+<div class="modal-ov" id="kali-modal">
+  <div class="modal" style="max-width:600px">
+    <button class="modal-x" onclick="closeModal('kali-modal')">✕</button>
+    <div class="modal-title" style="color:var(--safe)">💻 MÉMENTO KALI LINUX</div>
+    <div style="font-family:var(--fm);font-size:0.8rem;color:var(--white)">
+      <div style="margin-bottom:1rem;color:var(--sub)">Commandes réelles pour effectuer les tests simulés ici :</div>
+      
+      <div style="margin-bottom:0.8rem"><strong style="color:var(--warn)">1. RECONNAISSANCE (Nmap)</strong><br>
+      <div style="background:#111;padding:5px;border:1px solid #333;margin-top:3px;user-select:text!important">nmap -sV -sC -O target.com</div></div>
+
+      <div style="margin-bottom:0.8rem"><strong style="color:var(--warn)">2. SCAN VULNÉRABILITÉS WEB (Nikto)</strong><br>
+      <div style="background:#111;padding:5px;border:1px solid #333;margin-top:3px;user-select:text!important">nikto -h https://target.com</div></div>
+
+      <div style="margin-bottom:0.8rem"><strong style="color:var(--warn)">3. RECHERCHE DE RÉPERTOIRES (Gobuster)</strong><br>
+      <div style="background:#111;padding:5px;border:1px solid #333;margin-top:3px;user-select:text!important">gobuster dir -u https://target.com -w /usr/share/wordlists/dirb/common.txt</div></div>
+
+      <div style="margin-bottom:0.8rem"><strong style="color:var(--warn)">4. INJECTION SQL (Sqlmap)</strong><br>
+      <div style="background:#111;padding:5px;border:1px solid #333;margin-top:3px;user-select:text!important">sqlmap -u "https://target.com/page.php?id=1" --dbs</div></div>
+      
+      <div style="margin-bottom:0.5rem"><strong style="color:var(--ember)">5. BRUTE FORCE (Hydra)</strong><br>
+      <div style="background:#111;padding:5px;border:1px solid #333;margin-top:3px;user-select:text!important">hydra -l admin -P /usr/share/wordlists/rockyou.txt target.com http-post-form "/login.php:user=^USER^&pass=^PASS^:F=incorrect"</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-ov" id="whois-modal">
+  <div class="modal" style="max-width:550px">
+    <button class="modal-x" onclick="closeModal('whois-modal')">✕</button>
+    <div class="modal-title">📋 WHOIS / RDAP LOOKUP</div>
+    <div class="form">
+      <div style="display:flex;gap:0.5rem"><input class="fi" id="whois-target" type="text" placeholder="example.com"/><button class="btn" onclick="fetchWhois()">Rechercher</button></div>
+      <div id="whois-result" style="margin-top:1rem;background:var(--void);border:1px solid var(--border);padding:1rem;border-radius:4px;font-family:var(--fm);font-size:0.75rem;color:var(--text);max-height:300px;overflow-y:auto;white-space:pre-wrap">En attente de requête...</div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-ov" id="tech-modal">
+  <div class="modal" style="max-width:550px">
+    <button class="modal-x" onclick="closeModal('tech-modal')">✕</button>
+    <div class="modal-title">🛠️ TECH STACK DETECTOR</div>
+    <div class="form">
+      <div style="display:flex;gap:0.5rem"><input class="fi" id="tech-target" type="text" placeholder="https://site.com"/><button class="btn" onclick="fetchTechStack()">Analyser</button></div>
+      <div id="tech-result" style="margin-top:1rem;min-height:100px;font-family:var(--fm);font-size:0.8rem;color:var(--text)"></div>
+    </div>
+  </div>
+</div>
+
 <div class="modal-ov" id="disinfo-modal"><div class="modal" style="max-width:600px"><button class="modal-x" onclick="closeModal('disinfo-modal')">✕</button><div class="modal-title">🔎 DÉSINFORMATION & MEDIA INTELLIGENCE</div><div id="disinfo-content" style="font-size:.85rem;line-height:1.6"></div></div></div>
 <div class="modal-ov" id="war-modal"><div class="modal" style="max-width:600px"><button class="modal-x" onclick="closeModal('war-modal')">✕</button><div class="modal-title">📊 CONFLITS & PRÉDICTIONS DE RISQUE</div><div id="war-content" style="font-size:.85rem;line-height:1.6"></div></div></div>
 <div class="modal-ov" id="del-modal">
@@ -771,6 +887,7 @@ const LANGS = {
     cgu_link:'📜 Conditions d\'Utilisation', back:'Retour', back_home:'← Retour à l\'accueil',
     nav_shield:'🛡️ Bouclier', nav_analyze:'🔍 Analyser', nav_dark:'🕸️ Dark Web',
     nav_msg:'🔑 Messages', nav_watch:'🌍 Veille', nav_res:'📚 Ressources', nav_admin:'⚙️ Admin',
+    nav_pentest:'💀 Pentest', pentest_sub:'Test d\'intrusion · Déploiement GitHub · Audit',
     logout:'Déconnexion',
     page_shield:'Bouclier Visionnaire', page_shield_sub:'Premier rempart contre les menaces numériques',
     shield_on:'Bouclier Actif', shield_desc:'Protection activée · Supabase connecté · Moteur d\'analyse opérationnel',
@@ -841,6 +958,9 @@ const LANGS = {
     art_05: "Article 05", art_06: "Article 06", art_07: "Article 07",
     hw_title:'⚠ INTRUSION DÉTECTÉE ⚠', hw_msg:'Le Sharingan vous observe.\nToute tentative d\'inspection est tracée.',
     search_placeholder:'URL, texte ou domaine à analyser...',
+    pt_ph:'URL cible à scanner...', pt_btn_attack:'LANCER L\'ATTAQUE', pt_btn_git:'Déployer & Scanner', pt_btn_tech:'🛠️ Stack Detector',
+    pt_rep_title:'Rapport d\'Audit', git_modal_t:'🚀 Déploiement & Scan', git_target_lbl:'URL de Production (Cible)', pt_btn_bf:'💥 Brute Force (Simu)', pt_btn_kali:'💻 Commandes Kali', pt_btn_whois:'📋 Whois Lookup',
+    git_btn_run:'Déployer & Scanner',
     google_placeholder:'Votre recherche Google...',
     dark_placeholder:'Filtrer les menaces...',
     quick_placeholder:'URL, message suspect ou domaine à analyser...',
@@ -848,6 +968,10 @@ const LANGS = {
     msg_placeholder:'Message sécurisé...',
   },
   en: {
+    nav_pentest:'💀 Pentest', pentest_sub:'Intrusion Test · GitHub Deploy · Security Audit',
+    pt_ph:'Target URL to scan...', pt_btn_attack:'LAUNCH ATTACK', pt_btn_git:'Deploy & Scan', pt_btn_tech:'🛠️ Stack Detector',
+    pt_rep_title:'Audit Report', git_modal_t:'🚀 Deploy & Scan', git_target_lbl:'Production URL (Target)', pt_btn_bf:'💥 Brute Force (Sim)', pt_btn_kali:'💻 Kali Commands', pt_btn_whois:'📋 Whois Lookup',
+    git_btn_run:'Deploy & Scan',
     tagline:'See · Predict · Protect', tab_login:'Login', tab_register:'Sign Up',
     lbl_email:'Email Address', lbl_pass:'Password', lbl_newpass:'Create Password',
     lbl_newpass2:'New Password (empty = unchanged)', lbl_confirm:'Confirm',
@@ -927,6 +1051,7 @@ const LANGS = {
     art_05: "Article 05", art_06: "Article 06", art_07: "Article 07",
     hw_title:'⚠ INTRUSION DETECTED ⚠', hw_msg:'The Sharingan is watching you.\nAny inspection attempt is tracked.',
     search_placeholder:'Enter a URL, text or domain to analyze...',
+    
     google_placeholder:'Your Google search...',
     dark_placeholder:'Filter threats...',
     quick_placeholder:'URL, suspicious message or domain...',
@@ -934,6 +1059,10 @@ const LANGS = {
     msg_placeholder:'Secure message...',
   },
   wo: {
+    nav_pentest:'💀 Pentest', pentest_sub:'Seet bu dëgër · GitHub · Audit',
+    pt_ph:'Bindal URL bi...', pt_btn_attack:'DOOR LEGI', pt_btn_git:'Deploy & Seet', pt_btn_tech:'🛠️ Stack Detector',
+    pt_rep_title:'Xibaar Audit', git_modal_t:'🚀 Deploy & Seet', git_target_lbl:'URL bu dëgg', pt_btn_bf:'💥 Brute Force (Sim)', pt_btn_kali:'💻 Kali Commands', pt_btn_whois:'📋 Whois Lookup',
+    git_btn_run:'Deploy & Seet',
     tagline:'Gis · Xam · Bëgg', tab_login:'Dugg', tab_register:'Bind',
     lbl_email:'Aadresse Email', lbl_pass:'Diggël bi', lbl_newpass:'Bind diggël',
     lbl_newpass2:'Diggël bu bees (dëgër = inchangé)', lbl_confirm:'Sëtu',
@@ -1159,7 +1288,12 @@ function showPage(n){
     burger.classList.remove('open');
   }
   if(n==='threats')loadThreats();
-  if(n==='veille'){initVeilleFeed();initWeather();initCyberMap();}
+  if(n==='veille'){
+    initVeilleFeed();
+    initWeather();
+    initCyberMap();
+    setTimeout(initVeilleLeafletMaps, 280);
+  }
   if(n==='admin')loadAdminData();
 }
 function toggleMobileNav(){
@@ -1283,6 +1417,14 @@ function demoMode(path, opts){
     return {total_users:users.length, active_users:users.filter(u=>u.active).length, suspended_users:users.filter(u=>!u.active).length, analysis_requests:analysisCount};
   }
   if(path==='/admin/logs') return {logs:analysisLogs.slice(-20), total:analysisLogs.length};
+  if(path==='/scan'){
+    const raw = (body && body.target) ? String(body.target) : 'example.com';
+    const target = raw.startsWith('http') ? raw : 'https://' + raw;
+    return { success:true, target, status:200, latency:120, risk_score:20, vulns:[{type:'Mode hors-ligne', sev:'INFO', desc:'Scan réel des en-têtes HTTP : démarrez node server_nodejs.js et reconnectez-vous.', fix:'Lancer le backend puis relancer le scan.'}], real_ip:'—', robots_txt:'Démo' };
+  }
+  if(path==='/tools/whois') return { error:'Whois RDAP : serveur Node requis (mode démo).' };
+  if(path==='/tools/detect-tech') return { success:true, data:{ languages:['(démo)'], web_servers:[], cms:[], frameworks:[], apis:[] } };
+  if(path==='/veille/intelligence') return { items:[{ title:'[Démo] Lancez le serveur Node (node server_nodejs.js) pour agréger RFI, BBC, Le Monde, France 24, The Hacker News en direct.', link:'', publishedAt:new Date().toUTCString(), source:'SHARINNGANNE', region:'Info' }], risks:[{ id:'gz', val:91, c:'var(--ember)', fr:'Gaza / Israël', en:'Gaza / Israel', wo:'Gaza / Israël' },{ id:'sd', val:89, c:'var(--ember)', fr:'Soudan (Guerre civile)', en:'Sudan (Civil War)', wo:'Soudan (Xare)' },{ id:'uk', val:87, c:'#FF4400', fr:'Ukraine', en:'Ukraine', wo:'Ukraine' },{ id:'cd', val:84, c:'#FF4400', fr:'RDC Est', en:'DRC East', wo:'RDC Penku' },{ id:'sl', val:77, c:'#FF8800', fr:'Sahel (zone des 3 frontières)', en:'Sahel (3 borders zone)', wo:'Sahel (3 frontières)' },{ id:'ht', val:71, c:'#FF8800', fr:'Haïti (Gangs)', en:'Haiti (Gangs)', wo:'Haïti (Gangs)' },{ id:'tw', val:63, c:'#CCAA00', fr:'Taïwan (Tensions)', en:'Taiwan (Tensions)', wo:'Taïwan (Tensions)' }], updated_at:new Date().toISOString(), source:'demo' };
   return {};
 }
 
@@ -1649,6 +1791,237 @@ function calcTravel(){
 }
 
 // ══════════════════════════════════════════
+// PENTEST SIMULATION & REAL SCAN
+// ══════════════════════════════════════════
+async function runPentest(targetOverride=null) {
+  const url = targetOverride || document.getElementById('pentest-target').value.trim();
+  if(!url) { toast('⚠ Entrez une URL cible'); return; }
+
+  document.getElementById('pt-report').style.display = 'none';
+  const term = document.getElementById('pt-console');
+  term.innerHTML = '<div class="console-line console-sys">> Initializing attack vectors...</div>';
+
+  const log = (msg, type='') => {
+    const d = document.createElement('div');
+    d.className = 'console-line ' + type;
+    d.textContent = `> ${msg}`;
+    term.appendChild(d);
+    term.scrollTop = term.scrollHeight;
+  };
+
+  // Simulation visuelle "Hacker"
+  const steps = [
+    {m:'Resolving DNS target...', t:'console-info', d:400},
+    {m:`Pinging ${url}...`, t:'', d:600},
+    {m:'Host is UP. Latency: 42ms', t:'console-info', d:800},
+    {m:'Scanning common ports (80, 443, 8080, 22)...', t:'console-warn', d:1200},
+    {m:'Port 443 [OPEN] - HTTPS Service', t:'console-info', d:1500},
+    {m:'Injecting payloads (XSS, SQLi)...', t:'console-err', d:2000},
+    {m:'Analysing HTTP Headers...', t:'', d:2400},
+    {m:'[SERVER] Sending probe...', t:'console-sys', d:2600}
+  ];
+
+  for(const s of steps) {
+    await new Promise(r => setTimeout(r, s.d - (steps[steps.indexOf(s)-1]?.d || 0)));
+    log(s.m, s.t);
+  }
+
+  // VRAI SCAN VIA BACKEND
+  try {
+    const res = await api('/scan', {method:'POST', body:JSON.stringify({target: url})});
+    log('Scan complete. Generating report...', 'console-sys');
+    
+    if(res.error) {
+      log(`ERROR: ${res.error}`, 'console-err');
+      return;
+    }
+
+    renderPentestReport(res);
+
+  } catch(e) {
+    log(`CONNECTION FAILED: ${e.message}`, 'console-err');
+  }
+}
+
+function renderPentestReport(data) {
+  const rep = document.getElementById('pt-report');
+  const grid = document.getElementById('pt-grid');
+  const vulns = document.getElementById('pt-vulns');
+  const vulnList = Array.isArray(data.vulns) ? data.vulns : [];
+  const rs = typeof data.risk_score === 'number' ? data.risk_score : 0;
+  const st = data.status != null ? data.status : '—';
+  const lat = data.latency != null ? data.latency : '—';
+  
+  rep.style.display = 'block';
+  
+  grid.innerHTML = `
+    <div class="stat-card"><div class="stat-val" style="color:${rs>50?'var(--ember)':'var(--safe)'}">${rs}/100</div><div class="stat-lbl">Score de Risque</div></div>
+    <div class="stat-card"><div class="stat-val">${st}</div><div class="stat-lbl">Code HTTP</div></div>
+    <div class="stat-card"><div class="stat-val">${vulnList.length}</div><div class="stat-lbl">Failles trouvées</div></div>
+    <div class="stat-card"><div class="stat-val">${lat}${typeof lat==='number'?'ms':''}</div><div class="stat-lbl">Latence</div></div>
+    <div class="stat-card"><div class="stat-val" style="font-size:0.9rem">${data.real_ip||'N/A'}</div><div class="stat-lbl">IP Serveur</div></div>
+    <div class="stat-card"><div class="stat-val" style="font-size:0.9rem">${data.robots_txt||'?'}</div><div class="stat-lbl">Robots.txt</div></div>
+  `;
+
+  if(vulnList.length === 0) {
+    vulns.innerHTML = `<div style="color:var(--safe);text-align:center;padding:1rem">✅ Aucune vulnérabilité majeure détectée dans les en-têtes.</div>`;
+  } else {
+    vulns.innerHTML = vulnList.map(v => `
+      <div class="vuln-card" style="border-color:${v.sev==='ÉLEVÉ'?'#f00':v.sev==='MOYEN'?'#fa0':'#0f0'}">
+        <div style="font-family:var(--fb);font-size:.9rem;color:var(--white);margin-bottom:.3rem;display:flex;justify-content:space-between">
+          <span>${v.type}</span><span style="font-size:.7rem;padding:.1rem .4rem;border-radius:2px;background:rgba(255,255,255,0.1)">${v.sev}</span>
+        </div>
+        <div style="font-size:.82rem;color:var(--sub);margin-bottom:.4rem">${v.desc}</div>
+        <div style="font-size:.78rem;color:var(--safe)">🛠️ Solution: ${v.fix}</div>
+      </div>
+    `).join('');
+  }
+  
+  document.getElementById('pt-console').scrollTop = document.getElementById('pt-console').scrollHeight;
+}
+
+async function runGitDeploy() {
+  const repo = document.getElementById('git-repo').value;
+  const url = document.getElementById('git-url').value;
+  if(!repo || !url) { document.getElementById('git-err').textContent = '⚠️ Champs requis'; return; }
+  
+  closeModal('github-modal');
+  showPage('pentest');
+  document.getElementById('pentest-target').value = url;
+  
+  const term = document.getElementById('pt-console');
+  term.innerHTML = '';
+  const log = (msg) => term.innerHTML += `<div class="console-line">> ${msg}</div>`;
+  
+  log(`Cloning ${repo}...`);
+  await new Promise(r=>setTimeout(r, 800));
+  log(`Installing dependencies (npm install)...`);
+  await new Promise(r=>setTimeout(r, 1200));
+  log(`Building project...`);
+  await new Promise(r=>setTimeout(r, 1500));
+  log(`Deploying to production environment...`);
+  await new Promise(r=>setTimeout(r, 1000));
+  log(`🚀 DEPLOYMENT SUCCESSFUL: ${url}`);
+  log(`Initiating security scan on new deployment...`);
+  
+  runPentest(url);
+}
+
+async function runBruteForce() {
+  const url = document.getElementById('pentest-target').value.trim();
+  if(!url) { toast('⚠ Entrez une URL cible'); return; }
+
+  document.getElementById('pt-report').style.display = 'none';
+  const term = document.getElementById('pt-console');
+  term.innerHTML = '<div class="console-line console-sys">> Initializing Brute Force Attack Simulation...</div>';
+  
+  const log = (msg, type='') => {
+    const d = document.createElement('div');
+    d.className = 'console-line ' + type;
+    d.textContent = `> ${msg}`;
+    term.appendChild(d);
+    term.scrollTop = term.scrollHeight;
+  };
+
+  log(`Target: ${url}`);
+  log(`Loading dictionary: rockyou.txt (Top 100)...`, 'console-info');
+  await new Promise(r => setTimeout(r, 800));
+  
+  const combos = [['admin','123456'],['admin','password'],['admin','12345678'],['root','toor'],['root','root'],['user','123456'],['admin','qwerty'],['support','support'],['admin','admin123'],['test','test'],['admin','welcome'],['admin','iloveyou']];
+  for(const [u,p] of combos) {
+    await new Promise(r => setTimeout(r, 150+Math.random()*300));
+    log(`[${new Date().toLocaleTimeString()}] Trying ${u}:${p}... [FAILED]`, 'console-warn');
+    if(Math.random()>0.85) { log(`[!] WAF Detection: Rate limiting active. Pausing...`, 'console-err'); await new Promise(r=>setTimeout(r,1200)); }
+  }
+  log(`--------------------------------------------------`);
+  log(`Brute Force Finished. No weak credentials found in simulation.`);
+  log(`Recommendation: Implement account lockout after 5 failed attempts.`, 'console-safe');
+}
+
+function openWhoisModal() {
+  const currentTarget = document.getElementById('pentest-target').value.trim();
+  if(currentTarget) document.getElementById('whois-target').value = currentTarget;
+  document.getElementById('whois-result').textContent = 'Prêt à scanner...';
+  openModal('whois-modal');
+}
+
+async function fetchWhois() {
+  const target = document.getElementById('whois-target').value.trim();
+  const out = document.getElementById('whois-result');
+  if(!target) { out.textContent = '⚠ Entrez un domaine.'; return; }
+  
+  out.textContent = 'Chargement des données RDAP...';
+  
+  try {
+    const res = await api('/tools/whois', { method:'POST', body: JSON.stringify({ domain: target }) });
+    
+    if(res.error) {
+      out.innerHTML = `<span style="color:var(--ember)">${res.error}</span>`;
+      return;
+    }
+
+    const i = res.info;
+    let html = `<strong style="color:var(--safe)">DOMAINE: ${i.handle}</strong>\n\n`;
+    html += `[STATUT]\n${i.status.join('\n')}\n\n`;
+    html += `[DATES]\n${i.events.map(e => `${e.eventAction}: ${new Date(e.eventDate).toLocaleDateString()}`).join('\n')}\n\n`;
+    html += `[ENTITÉS]\n${i.entities.map(e => `${(e.role||[]).join(', ').toUpperCase()}: ${e.name}`).join('\n')}`;
+    
+    out.innerHTML = html;
+  } catch(e) {
+    out.textContent = 'Erreur: ' + e.message;
+  }
+}
+
+function openTechModal() {
+  const currentTarget = document.getElementById('pentest-target').value.trim();
+  if(currentTarget) document.getElementById('tech-target').value = currentTarget;
+  document.getElementById('tech-result').innerHTML = '<span style="color:var(--muted)">Entrez une URL pour scanner la technologie.</span>';
+  openModal('tech-modal');
+}
+
+async function fetchTechStack() {
+  const url = document.getElementById('tech-target').value.trim();
+  const out = document.getElementById('tech-result');
+  if(!url) { out.textContent = '⚠ Entrez une URL.'; return; }
+  
+  out.innerHTML = '<div class="loading">Scan des technologies...</div>';
+  try {
+    const res = await api('/tools/detect-tech', { method:'POST', body: JSON.stringify({ url }) });
+    if(res.error) { out.innerHTML = `<span style="color:var(--ember)">${res.error}</span>`; return; }
+    
+    const d = res.data;
+    
+    const icons = {
+      'PHP':'🐘','Node.js':'🟢','Python':'🐍','Java':'☕','ASP.NET':'🔷','Ruby':'💎','Go':'🐹',
+      'WordPress':'📝','Shopify':'🛍️','Wix':'🧩','Squarespace':'🔳','Joomla':'✒️','Drupal':'🏰',
+      'React':'⚛️','Vue.js':'🖖','Angular':'🅰️','jQuery':'💲','Bootstrap':'🅱️','Tailwind CSS':'🍃','Laravel':'🏗️','Express':'🚂','Django':'🎸','Spring':'🍃',
+      'Google Analytics':'📊','Stripe':'💳','PayPal':'🅿️','Nginx':'🟢','Apache':'🪶','Cloudflare':'☁️','Microsoft-IIS':'🪟'
+    };
+    const getIc = (n) => {
+      if(icons[n]) return icons[n];
+      for(let k in icons) if(n.toLowerCase().includes(k.toLowerCase())) return icons[k];
+      return '🔹';
+    };
+
+    const mkSection = (title, items) => items.length ? 
+      `<div style="margin-bottom:1rem">
+         <div style="color:var(--sub);font-size:.65rem;letter-spacing:.15em;text-transform:uppercase;border-bottom:1px solid var(--border);padding-bottom:4px;margin-bottom:.6rem;display:flex;align-items:center;gap:.5rem">${title}</div>
+         <div style="display:flex;flex-wrap:wrap;gap:.6rem">
+           ${items.map(i => `<div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);padding:.4rem .8rem;border-radius:4px;font-size:.8rem;color:var(--white);display:flex;align-items:center;gap:.5rem;box-shadow:0 2px 5px rgba(0,0,0,0.2)"><span style="font-size:1.1rem">${getIc(i)}</span> ${i}</div>`).join('')}
+         </div>
+       </div>` : '';
+    
+    out.innerHTML = `
+      ${mkSection('💻 LANGAGES', d.languages)}
+      ${mkSection('🖥️ SERVEUR', d.web_servers)}
+      ${mkSection('🏗️ CMS / PLATEFORME', d.cms)}
+      ${mkSection('📚 FRAMEWORKS & LIBRAIRIES', d.frameworks)}
+      ${mkSection('🔌 APIs & SERVICES', d.apis)}
+    ` || '<div style="color:var(--sub)">Aucune technologie spécifique détectée (Site statique ou protégé).</div>';
+  } catch(e) { out.textContent = 'Erreur: ' + e.message; }
+}
+
+// ══════════════════════════════════════════
 // VEILLE INTELLIGENCE
 // ══════════════════════════════════════════
 const ALERTS_POOL = [
@@ -1667,21 +2040,71 @@ const ALERTS_POOL = [
 ];
 
 let alertInterval;
+let veilleIntelCache = null;
 
-function initVeilleFeed(){
-  const el=document.getElementById('veille-alerts'); if(!el)return;
-  el.innerHTML='';
-  if(alertInterval) clearInterval(alertInterval);
-  
-  // Chargement initial aléatoire (6 alertes) pour varier chaque jour
-  const shuffled = [...ALERTS_POOL].sort(() => 0.5 - Math.random()).slice(0, 6);
-  shuffled.forEach(a => addAlertToFeed(a, false));
+function escapeHtmlVeille(s){
+  const d = document.createElement('div');
+  d.textContent = s == null ? '' : String(s);
+  return d.innerHTML;
+}
+function escapeAttrVeille(u){
+  return String(u || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+}
 
-  // Simulation de flux en direct (nouvelle alerte toutes les 15s)
-  alertInterval = setInterval(() => {
-    const randomAlert = ALERTS_POOL[Math.floor(Math.random() * ALERTS_POOL.length)];
-    addAlertToFeed(randomAlert, true);
-  }, 15000);
+async function initVeilleFeed(){
+  const el = document.getElementById('veille-alerts');
+  if (!el) return;
+  if (alertInterval) clearInterval(alertInterval);
+  el.innerHTML = '<div class="loading">Chargement du flux d\'actualités…</div>';
+  try {
+    const data = await api('/veille/intelligence', { method: 'GET' });
+    veilleIntelCache = data;
+    el.innerHTML = '';
+    if (data.items && data.items.length) {
+      data.items.slice(0, 22).forEach((item) => addRssAlertToFeed(item, false));
+    } else {
+      throw new Error('empty');
+    }
+  } catch (_) {
+    veilleIntelCache = null;
+    el.innerHTML = '';
+    const shuffled = [...ALERTS_POOL].sort(() => 0.5 - Math.random()).slice(0, 6);
+    shuffled.forEach((a) => addAlertToFeed(a, false));
+  }
+  alertInterval = setInterval(refreshVeillePoll, 180000);
+}
+
+async function refreshVeillePoll(){
+  const el = document.getElementById('veille-alerts');
+  if (!el || !document.getElementById('page-veille')?.classList.contains('active')) return;
+  try {
+    const data = await api('/veille/intelligence', { method: 'GET' });
+    if (!data.items || !data.items.length) return;
+    veilleIntelCache = data;
+    const latest = data.items[0];
+    const key = latest.title + '|' + (latest.publishedAt || '');
+    if (el.dataset.lastHeadline === key) return;
+    el.dataset.lastHeadline = key;
+    addRssAlertToFeed(latest, true);
+  } catch (_) {}
+}
+
+function addRssAlertToFeed(item, isNew){
+  const el = document.getElementById('veille-alerts');
+  if (!el) return;
+  const d = document.createElement('div');
+  d.className = 'alert-item';
+  if (isNew) d.style.animation = 'fadeIn 0.5s ease';
+  const t = item.publishedAt ? new Date(item.publishedAt) : new Date();
+  const timeStr = isNaN(t.getTime())
+    ? `${String(new Date().getHours()).padStart(2,'0')}:${String(new Date().getMinutes()).padStart(2,'0')}`
+    : `${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}`;
+  const srcLine = [item.source, item.region].filter(Boolean).join(' · ');
+  const safeLink = item.link && /^https?:\/\//i.test(item.link) ? item.link : '';
+  d.innerHTML = `<div class="alert-time">${timeStr}</div><div><div class="alert-txt"><strong style="color:var(--white)">${escapeHtmlVeille(item.title)}</strong></div><div class="alert-src">${escapeHtmlVeille(srcLine)}${safeLink ? ` · <a href="${escapeAttrVeille(safeLink)}" target="_blank" rel="noopener noreferrer" style="color:var(--crimson)">article</a>` : ''}</div></div>`;
+  if (isNew) el.insertBefore(d, el.firstChild);
+  else el.appendChild(d);
+  while (el.children.length > 28) el.lastChild.remove();
 }
 
 function addAlertToFeed(a, isNew){
@@ -1767,16 +2190,14 @@ function openDisinfoModal(){
 function openWarModal(){
   const T = LANGS[currentLang]||LANGS.fr;
   const lang = ['fr','en','wo'].includes(currentLang) ? currentLang : 'fr';
-  const c=document.getElementById('war-content');
-  
-  const risks = WAR_RISKS.map(r => {
-      const variation = Math.floor(Math.random() * 5) - 2; 
-      let val = r.v + variation; if(val>100)val=100; if(val<0)val=0;
-      return {...r, val: val};
-  }).sort((a,b) => b.val - a.val);
+  const c = document.getElementById('war-content');
+  c.innerHTML = '<div class="loading">Analyse des risques à partir des flux actuels…</div>';
+  openModal('war-modal');
 
-  c.innerHTML=`<h3 style="color:var(--white);margin-bottom:1rem">🔥 ${T.v3_t} (Live)</h3>` + 
-  risks.map(r => {
+  function renderRisks(risks, subtitle){
+    const sub = subtitle ? `<span style="font-size:.65rem;color:var(--muted);font-weight:normal;margin-left:.35rem">${subtitle}</span>` : '';
+    c.innerHTML = `<h3 style="color:var(--white);margin-bottom:1rem">🔥 ${T.v3_t} ${sub}</h3>` +
+    risks.map(r => {
       const name = r[lang] || r.fr;
       return `<div style="margin-bottom:.8rem">
         <div style="display:flex;justify-content:space-between;font-size:.8rem;color:var(--text)">
@@ -1785,14 +2206,94 @@ function openWarModal(){
         </div>
         <div class="risk-bar-wrap"><div class="risk-fill" style="width:${r.val}%;background:${r.c};transition:width 1s"></div></div>
       </div>`;
-  }).join('');
-  
-  const now = new Date();
-  const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-  const updateText = currentLang==='en'?'Last Satellite Update':currentLang==='wo'?'Yeesal bu mujj':'Dernière mise à jour satellite';
-  c.innerHTML += `<div style="margin-top:1.5rem;text-align:right;font-family:var(--fm);font-size:.65rem;color:var(--muted)">${updateText}: ${timeStr}</div>`;
-  
-  openModal('war-modal');
+    }).join('');
+    const now = new Date();
+    const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+    const updateText = currentLang==='en' ? 'Updated' : currentLang==='wo' ? 'Yeesal bu mujj' : 'Mise à jour';
+    const srcNote = veilleIntelCache && veilleIntelCache.source === 'rss' ? ' · veille RSS' : '';
+    c.innerHTML += `<div style="margin-top:1.5rem;text-align:right;font-family:var(--fm);font-size:.65rem;color:var(--muted)">${updateText}: ${timeStr}${srcNote}</div>`;
+    c.innerHTML += `<p style="margin-top:.75rem;font-size:.72rem;color:var(--sub);line-height:1.55">${currentLang==='en' ? 'Indicative scores from aggregated headlines — not military intelligence. Always verify with official sources.' : currentLang==='wo' ? 'Ay xel yi ñu jële ci ay titre. Loolu du dëgg-dëggu military. Wut ay xibar yu oficial.' : 'Scores indicatifs dérivés des gros titres agrégés — pas du renseignement militaire. Vérifiez toujours auprès des sources officielles.'}</p>`;
+  }
+
+  if (veilleIntelCache && veilleIntelCache.risks && veilleIntelCache.risks.length) {
+    renderRisks(veilleIntelCache.risks, '');
+    return;
+  }
+  (async () => {
+    try {
+      const data = await api('/veille/intelligence', { method: 'GET' });
+      veilleIntelCache = data;
+      if (data.risks && data.risks.length) renderRisks(data.risks, '');
+      else throw new Error('empty');
+    } catch {
+      const risks = WAR_RISKS.map(r => {
+        const variation = Math.floor(Math.random() * 5) - 2;
+        let val = r.v + variation; if (val > 100) val = 100; if (val < 0) val = 0;
+        return { id: r.id, val, c: r.c, fr: r.fr, en: r.en, wo: r.wo };
+      }).sort((a, b) => b.val - a.val);
+      renderRisks(risks, currentLang === 'en' ? '(offline)' : currentLang === 'wo' ? '(demo)' : '(hors-ligne)');
+    }
+  })();
+}
+
+// ══════════════════════════════════════════
+// CARTES LEAFLET (OpenStreetMap)
+// ══════════════════════════════════════════
+let _leafletWorldMap = null;
+let _leafletAfriqueMap = null;
+
+function initVeilleLeafletMaps(){
+  if (typeof L === 'undefined') return;
+  const elW = document.getElementById('leaflet-map-world');
+  const elA = document.getElementById('leaflet-map-afrique');
+  if (!elW || !elA) return;
+
+  const tileOpts = {
+    maxZoom: 19,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" rel="noopener">OSM</a>',
+  };
+
+  const markers = [
+    { n: 'Dakar', lat: 14.6937, lon: -17.4441 },
+    { n: 'Paris', lat: 48.8566, lon: 2.3522 },
+    { n: 'Bruxelles', lat: 50.8503, lon: 4.3517 },
+    { n: 'Kinshasa', lat: -4.4419, lon: 15.2663 },
+    { n: 'Nairobi', lat: -1.2921, lon: 36.8219 },
+    { n: 'Le Caire', lat: 30.0444, lon: 31.2357 },
+    { n: 'New York', lat: 40.7128, lon: -74.0060 },
+    { n: 'Londres', lat: 51.5074, lon: -0.1278 },
+  ];
+
+  if (!_leafletWorldMap) {
+    _leafletWorldMap = L.map(elW, { scrollWheelZoom: true }).setView([18, 10], 2);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', tileOpts).addTo(_leafletWorldMap);
+    markers.forEach((p) => {
+      L.circleMarker([p.lat, p.lon], { radius: 5, color: '#CC0000', weight: 2, fillColor: '#FF2200', fillOpacity: 0.75 })
+        .addTo(_leafletWorldMap)
+        .bindPopup(p.n);
+    });
+  } else {
+    _leafletWorldMap.invalidateSize();
+  }
+
+  if (!_leafletAfriqueMap) {
+    _leafletAfriqueMap = L.map(elA, { scrollWheelZoom: true }).setView([15, 15], 3);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', tileOpts).addTo(_leafletAfriqueMap);
+    markers.forEach((p) => {
+      if (p.lat < 38 && p.lat > -35 && p.lon > -25 && p.lon < 55) {
+        L.circleMarker([p.lat, p.lon], { radius: 6, color: '#CC0000', weight: 2, fillColor: '#FF2200', fillOpacity: 0.8 })
+          .addTo(_leafletAfriqueMap)
+          .bindPopup(p.n);
+      }
+    });
+  } else {
+    _leafletAfriqueMap.invalidateSize();
+  }
+
+  setTimeout(() => {
+    _leafletWorldMap?.invalidateSize();
+    _leafletAfriqueMap?.invalidateSize();
+  }, 120);
 }
 
 // ══════════════════════════════════════════

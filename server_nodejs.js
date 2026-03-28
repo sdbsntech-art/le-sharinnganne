@@ -22,6 +22,7 @@ const compression  = require('compression');
 const { createClient } = require('@supabase/supabase-js');
 const crypto       = require('crypto');
 const path         = require('path');
+const dns          = require('dns').promises;
 
 // ═══════════════════════════════════════
 // CONFIG
@@ -31,7 +32,13 @@ const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(64).toString('he
 
 // Supabase (utiliser les variables d'env en production)
 const SUPABASE_URL  = process.env.SUPABASE_URL  || 'https://fupsykyeofaawjekzfcz.supabase.co';
-const SUPABASE_ANON = process.env.SUPABASE_ANON || 'VOTRE_ANON_KEY'; // Ne jamais hardcoder en prod
+const SUPABASE_ANON = process.env.SUPABASE_ANON;
+
+if (!SUPABASE_ANON) {
+  console.error('❌ ERREUR : La variable SUPABASE_ANON est manquante dans le fichier .env');
+  process.exit(1);
+}
+
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'seydoubakhayokho1@gmail.com'; // En prod: définir via variable d'env
@@ -46,12 +53,12 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc:     ["'self'"],
-      scriptSrc:      ["'self'", "'unsafe-inline'"],  // nécessaire pour le JS inline
-      styleSrc:       ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+      scriptSrc:      ["'self'", "'unsafe-inline'", 'https://cdn.jsdelivr.net'],  // Leaflet + inline
+      styleSrc:       ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https://cdn.jsdelivr.net'],
       fontSrc:        ["'self'", 'https://fonts.gstatic.com'],
       imgSrc:         ["'self'", 'data:', 'https:'],
-      connectSrc:     ["'self'", SUPABASE_URL, "https://api.open-meteo.com"],
-      frameSrc:       ["'none'"],
+      connectSrc:     ["'self'", SUPABASE_URL, "https://api.open-meteo.com", 'https://cdn.jsdelivr.net'],
+      frameSrc:       ["'self'", 'https://www.youtube.com', 'https://www.youtube-nocookie.com'],
       objectSrc:      ["'none'"],
       upgradeInsecureRequests: [],
     },
@@ -208,16 +215,21 @@ async function ensureAdminUser() {
     }
 
     if (!existing) {
-      const { error: insertError } = await supabase.from('users').insert({
-        email: ADMIN_EMAIL,
-        password_hash,
-        unique_key: 'SHR-ADMN01',
-        is_admin: true,
-        active: true,
-        joined: new Date().toISOString(),
-      });
-      if (insertError) console.error('Erreur création admin', insertError);
-      else console.log('[Init] Admin créé:', ADMIN_EMAIL);
+      // Utilisation de upsert pour éviter les erreurs de duplication sur unique_key
+      const { error: upsertError } = await supabase.from('users').upsert({
+          email: ADMIN_EMAIL,
+          password_hash,
+          unique_key: 'SHR-ADMN01',
+          is_admin: true,
+          active: true,
+          joined: new Date().toISOString(),
+      }, { onConflict: 'email' });
+
+      if (upsertError && upsertError.code !== '23505') {
+        console.error('Erreur synchronisation admin:', upsertError.message);
+      } else {
+        console.log('[Init] Admin vérifié/créé:', ADMIN_EMAIL);
+      }
       return;
     }
 
@@ -245,6 +257,123 @@ async function ensureAdminUser() {
   } catch (e) {
     console.error('Erreur ensureAdminUser:', e.message || e);
   }
+}
+
+// ═══════════════════════════════════════
+// VEILLE — Agrégation RSS + instantané risques
+// ═══════════════════════════════════════
+
+const VEILLE_FEEDS = [
+  { id: 'RFI Afrique', url: 'https://www.rfi.fr/rss/fr/afrique', region: 'Afrique' },
+  { id: 'BBC World', url: 'https://feeds.bbci.co.uk/news/world/rss.xml', region: 'Monde' },
+  { id: 'Le Monde', url: 'https://www.lemonde.fr/international/rss_full.xml', region: 'Monde' },
+  { id: 'France 24', url: 'https://www.france24.com/fr/rss', region: 'Monde' },
+  { id: 'The Hacker News', url: 'https://feeds.feedburner.com/TheHackersNews', region: 'Cyber' },
+];
+
+const RISK_PROFILES = [
+  { id: 'sd', base: 88, c: 'var(--ember)', keys: ['soudan', 'sudan', 'khartoum', 'darfour'], fr: 'Soudan (Guerre civile)', en: 'Sudan (Civil War)', wo: 'Soudan (Xare)' },
+  { id: 'gz', base: 90, c: 'var(--ember)', keys: ['gaza', 'israel', 'hamas', 'cisjordanie', 'palest'], fr: 'Gaza / Israël', en: 'Gaza / Israel', wo: 'Gaza / Israël' },
+  { id: 'uk', base: 86, c: '#FF4400', keys: ['ukraine', 'russie', 'russia', 'poutine', 'putin', 'kyiv', 'kiev', 'donbass', 'crimea'], fr: 'Ukraine', en: 'Ukraine', wo: 'Ukraine' },
+  { id: 'cd', base: 84, c: '#FF4400', keys: ['rdc', 'kinshasa', 'goma', 'kivu', 'm23', 'congo'], fr: 'RDC Est', en: 'DRC East', wo: 'RDC Penku' },
+  { id: 'sl', base: 76, c: '#FF8800', keys: ['sahel', 'burkina', 'mali', 'niger', 'jihad', 'terrorisme au sahel'], fr: 'Sahel (zone des 3 frontières)', en: 'Sahel (3 borders zone)', wo: 'Sahel (3 frontières)' },
+  { id: 'ht', base: 70, c: '#FF8800', keys: ['haïti', 'haiti', 'port-au-prince', 'port au prince'], fr: 'Haïti (Gangs)', en: 'Haiti (Gangs)', wo: 'Haïti (Gangs)' },
+  { id: 'tw', base: 62, c: '#CCAA00', keys: ['taïwan', 'taiwan', 'taipei', 'détroit de taïwan'], fr: 'Taïwan (Tensions)', en: 'Taiwan (Tensions)', wo: 'Taïwan (Tensions)' },
+];
+
+function parseRssItems(xml, limit = 12) {
+  const items = [];
+  const re = /<item\b[^>]*>([\s\S]*?)<\/item>/gi;
+  let m;
+  while ((m = re.exec(xml)) !== null && items.length < limit) {
+    const block = m[1];
+    let title = '';
+    const tm = block.match(/<title(?:\s[^>]*)?>(?:\s*<!\[CDATA\[([\s\S]*?)\]\]>\s*|([^<]*))<\/title>/i);
+    if (tm) title = String(tm[1] || tm[2] || '').replace(/<[^>]+>/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').trim();
+    let link = '';
+    const lm = block.match(/<link>([^<]+)<\/link>/i) || block.match(/<link[^>]*href="([^"]+)"[^>]*\/?>/i);
+    if (lm) link = String(lm[1]).trim();
+    let publishedAt = null;
+    const pm = block.match(/<pubDate>([^<]+)<\/pubDate>/i);
+    if (pm) publishedAt = String(pm[1]).trim();
+    if (title) items.push({ title, link, publishedAt });
+  }
+  return items;
+}
+
+function parseAtomEntries(xml, limit = 12) {
+  const items = [];
+  const re = /<entry\b[^>]*>([\s\S]*?)<\/entry>/gi;
+  let m;
+  while ((m = re.exec(xml)) !== null && items.length < limit) {
+    const block = m[1];
+    let title = '';
+    const tm = block.match(/<title(?:\s[^>]*)?>(?:\s*<!\[CDATA\[([\s\S]*?)\]\]>\s*|([^<]*))<\/title>/i);
+    if (tm) title = String(tm[1] || tm[2] || '').replace(/<[^>]+>/g, '').trim();
+    let link = '';
+    const linkTags = [...block.matchAll(/<link([^>]*)>/gi)];
+    for (const lm of linkTags) {
+      const raw = lm[1] || '';
+      if (/rel="alternate"/i.test(raw) || !/rel=/i.test(raw)) {
+        const hm = raw.match(/href="([^"]+)"/i);
+        if (hm) { link = hm[1].trim(); break; }
+      }
+    }
+    let publishedAt = null;
+    const um = block.match(/<updated>([^<]+)<\/updated>/i) || block.match(/<published>([^<]+)<\/published>/i);
+    if (um) publishedAt = String(um[1]).trim();
+    if (title) items.push({ title, link, publishedAt });
+  }
+  return items;
+}
+
+function parseFeedXml(xml, limit) {
+  let items = parseRssItems(xml, limit);
+  if (!items.length) items = parseAtomEntries(xml, limit);
+  return items;
+}
+
+async function aggregateVeilleFeeds() {
+  const all = [];
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 14000);
+  await Promise.all(
+    VEILLE_FEEDS.map(async (feed) => {
+      try {
+        const r = await fetch(feed.url, {
+          headers: { 'User-Agent': 'SHARINNGANNE-Veille/1.0 (veille RSS)' },
+          signal: ctl.signal,
+        });
+        if (!r.ok) return;
+        const xml = await r.text();
+        parseFeedXml(xml, 10).forEach((it) => {
+          all.push({
+            title: it.title,
+            link: it.link || feed.url,
+            publishedAt: it.publishedAt,
+            source: feed.id,
+            region: feed.region,
+          });
+        });
+      } catch (_) { /* flux indisponible */ }
+    }),
+  );
+  clearTimeout(timer);
+  all.sort((a, b) => {
+    const da = Date.parse(a.publishedAt) || 0;
+    const db = Date.parse(b.publishedAt) || 0;
+    return db - da;
+  });
+  return all.slice(0, 45);
+}
+
+function computeRiskSnapshot(headlineBlob) {
+  const b = (headlineBlob || '').toLowerCase();
+  return RISK_PROFILES.map((row) => {
+    let bump = row.keys.reduce((n, k) => n + (b.includes(k) ? 5 : 0), 0);
+    let val = Math.min(100, Math.max(0, row.base + bump + Math.floor(Math.random() * 3) - 1));
+    return { id: row.id, val, c: row.c, fr: row.fr, en: row.en, wo: row.wo };
+  }).sort((a, b) => b.val - a.val);
 }
 
 // ═══════════════════════════════════════
@@ -382,6 +511,80 @@ function analyzeText(query) {
   return { risk_score: score, risk_level: lvl, indicators: { phishing_keywords: phi, darkweb_refs: drk, malware_families: mlw }, recommendations: recs, google_search_url: `https://www.google.com/search?q=${encodeURIComponent(query)}&hl=fr&safe=active` };
 }
 
+// ══════════════════════════════════════════
+// MOTEUR DE SCAN RÉEL (PENTEST)
+// ══════════════════════════════════════════
+async function scanTarget(urlInput) {
+  let url = urlInput.trim();
+  if (!url.startsWith('http')) url = 'https://' + url;
+  let hostname = '';
+  
+  try {
+    // Timeout de 8 secondes pour le scan
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    const start = Date.now();
+    
+    // 1. Résolution DNS Réelle
+    let ip = 'Masqué/CDN';
+    try {
+      hostname = new URL(url).hostname;
+      const ips = await dns.resolve4(hostname).catch(() => []);
+      if(ips.length > 0) ip = ips[0];
+    } catch(e) {}
+
+    // 2. Vérification Robots.txt (Passive)
+    const robotsRes = await fetch(new URL('/robots.txt', url).toString(), { method: 'HEAD', signal: controller.signal }).catch(() => ({ status: 404 }));
+
+    // Requête HEAD pour être léger et rapide
+    const res = await fetch(url, { method: 'HEAD', signal: controller.signal }).catch(e => ({ error: e.message }));
+    clearTimeout(timeoutId);
+
+    if (res.error) return { error: "Cible inaccessible ou délai dépassé." };
+
+    const headers = res.headers;
+    const vulns = [];
+    
+    // Vérification des Headers de sécurité
+    const hsts = headers.get('strict-transport-security');
+    const csp = headers.get('content-security-policy');
+    const xfo = headers.get('x-frame-options');
+    const xct = headers.get('x-content-type-options');
+    const server = headers.get('server');
+    const powered = headers.get('x-powered-by');
+
+    if(!hsts && url.startsWith('https')) vulns.push({type:'HSTS Manquant', sev:'MOYEN', desc:'Vulnérabilité aux attaques MITM (Downgrade).', fix:'Activer Strict-Transport-Security.'});
+    if(!csp) vulns.push({type:'CSP Manquant', sev:'ÉLEVÉ', desc:'Protection XSS et Injection de données absente.', fix:'Définir une Content-Security-Policy stricte.'});
+    if(!xfo) vulns.push({type:'Anti-Clickjacking', sev:'FAIBLE', desc:'Le site peut être intégré dans une iframe malveillante.', fix:'Ajouter X-Frame-Options: DENY.'});
+    if(!xct) vulns.push({type:'MIME Sniffing', sev:'FAIBLE', desc:'Interprétation incorrecte des types de fichiers.', fix:'Ajouter X-Content-Type-Options: nosniff.'});
+    if(server || powered) vulns.push({type:'Divulgation Info', sev:'INFO', desc:`Serveur expose sa version: ${server || powered}`, fix:'Masquer les en-têtes Server/X-Powered-By.'});
+
+    let riskScore = 0;
+    vulns.forEach(v => riskScore += (v.sev==='ÉLEVÉ'?30:v.sev==='MOYEN'?15:5));
+    riskScore = Math.min(riskScore, 100);
+
+    // Émettre un bip sonore dans la console du serveur si une vulnérabilité est trouvée
+    if (riskScore > 0) {
+      process.stdout.write('\u0007'); 
+      console.log(`⚠️ ALERTE : Vulnérabilité détectée sur ${url} (Score: ${riskScore})`);
+    }
+
+    return {
+      success: true,
+      target: url,
+      status: res.status,
+      latency: Date.now() - start,
+      risk_score: riskScore,
+      vulns: vulns,
+      real_ip: ip,
+      robots_txt: robotsRes.status === 200 ? 'Trouvé (200)' : 'Non trouvé (' + robotsRes.status + ')',
+      play_alert: riskScore > 0
+    };
+  } catch (e) {
+    return { error: "Erreur moteur scan: " + e.message };
+  }
+}
+
 app.post('/api/analyze', requireAuth, analysisLimiter,
   [body('query').trim().isLength({ min: 2, max: 500 })],
   validate,
@@ -395,6 +598,110 @@ app.post('/api/analyze', requireAuth, analysisLimiter,
       created_at: new Date().toISOString(),
     }).catch(() => {}); // Silencieux si table inexistante
     res.json({ ...result, query: req.body.query, analyzed_at: new Date().toISOString() });
+  }
+);
+
+app.post('/api/scan', requireAuth, analysisLimiter,
+  [body('target').trim().isLength({ min: 4 })],
+  validate,
+  async (req, res) => {
+    const result = await scanTarget(req.body.target);
+    await supabase.from('analysis_logs').insert({
+      user_email: req.user.email,
+      query: '[SCAN] ' + req.body.target,
+      risk_score: result.risk_score || 0,
+      created_at: new Date().toISOString(),
+    }).catch(()=>{});
+    res.json(result);
+  }
+);
+
+app.post('/api/tools/whois', requireAuth, analysisLimiter,
+  [body('domain').trim().isLength({ min: 3 })],
+  validate,
+  async (req, res) => {
+    const { domain } = req.body;
+    try {
+      // Extraction propre du nom de domaine
+      const hostname = domain.replace(/^(?:https?:\/\/)?(?:www\.)?/i, '').split('/')[0];
+      
+      // Requête vers le service de redirection RDAP standard
+      const response = await fetch(`https://rdap.org/domain/${hostname}`);
+      
+      if (!response.ok) {
+        return res.status(404).json({ error: "Domaine introuvable ou extension non supportée." });
+      }
+      
+      const data = await response.json();
+      
+      // Simplification des données pour l'affichage
+      const simpleInfo = {
+        handle: data.handle,
+        events: data.events || [], // Dates (création, expiration)
+        status: data.status || [],
+        entities: (data.entities || []).map(e => ({ role: e.roles, name: (e.vcardArray && e.vcardArray[1]) ? e.vcardArray[1].find(x => x[0] === 'fn')?.[3] : 'N/A' }))
+      };
+
+      res.json({ success: true, info: simpleInfo });
+    } catch (e) {
+      res.status(500).json({ error: "Erreur lors de la récupération Whois." });
+    }
+  }
+);
+
+app.post('/api/tools/detect-tech', requireAuth, analysisLimiter,
+  [body('url').trim().isLength({ min: 4 })],
+  validate,
+  async (req, res) => {
+    let url = req.body.url.trim();
+    if (!url.startsWith('http')) url = 'https://' + url;
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      
+      const response = await fetch(url, { 
+        method: 'GET', 
+        signal: controller.signal,
+        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; SharinnganneBot/1.0)' }
+      });
+      clearTimeout(timeoutId);
+
+      const html = await response.text();
+      const lowerHtml = html.toLowerCase();
+      const headers = response.headers;
+      
+      const result = { languages: [], web_servers: [], frameworks: [], cms: [], apis: [] };
+
+      // 1. ANALYSE HEADERS & COOKIES
+      const server = headers.get('server'); const powered = headers.get('x-powered-by'); const cookies = headers.get('set-cookie') || '';
+      if (server) result.web_servers.push(server);
+      if (powered) { if(powered.includes('PHP')) result.languages.push('PHP'); if(powered.includes('Express')) { result.languages.push('Node.js'); result.frameworks.push('Express'); } if(powered.includes('ASP.NET')) result.languages.push('ASP.NET'); }
+      if (cookies.includes('PHPSESSID')) result.languages.push('PHP');
+      if (cookies.includes('JSESSIONID')) result.languages.push('Java');
+      if (cookies.includes('csrftoken') && !result.languages.includes('Python')) result.languages.push('Python (Django?)');
+      if (cookies.includes('laravel_session')) { result.languages.push('PHP'); result.frameworks.push('Laravel'); }
+
+      // 2. ANALYSE HTML (SIGNATURES)
+      if (lowerHtml.includes('wp-content') || lowerHtml.includes('generator" content="wordpress')) result.cms.push('WordPress');
+      else if (lowerHtml.includes('shopify')) result.cms.push('Shopify');
+      else if (lowerHtml.includes('wix.com')) result.cms.push('Wix');
+
+      if (lowerHtml.includes('react') || lowerHtml.includes('data-reactroot')) result.frameworks.push('React');
+      if (lowerHtml.includes('vue.js') || lowerHtml.includes('data-v-')) result.frameworks.push('Vue.js');
+      if (lowerHtml.includes('jquery')) result.frameworks.push('jQuery');
+      if (lowerHtml.includes('bootstrap')) result.frameworks.push('Bootstrap');
+      if (lowerHtml.includes('tailwind')) result.frameworks.push('Tailwind CSS');
+
+      if (lowerHtml.includes('google-analytics')) result.apis.push('Google Analytics');
+      if (lowerHtml.includes('stripe.com') || lowerHtml.includes('paypal.com')) result.apis.push('Paiement (Stripe/PayPal)');
+      if (lowerHtml.includes('/api/v1/') || lowerHtml.includes('/api/v2/') || lowerHtml.includes('/graphql')) result.apis.push('API Interne détectée');
+
+      Object.keys(result).forEach(k => result[k] = [...new Set(result[k])]); // Dédoublonnage
+      if (result.languages.length === 0) result.languages.push('Non identifié (HTML/JS statique ?)');
+
+      res.json({ success: true, data: result });
+    } catch (e) { res.status(500).json({ error: "Échec analyse: " + e.message }); }
   }
 );
 
@@ -415,6 +722,23 @@ app.post('/api/search/google', requireAuth,
 app.get('/api/threats/darkweb', requireAuth, async (req, res) => {
   // En prod: charger depuis Supabase table 'threats'
   res.json({ threats: DEMO_THREATS, total: DEMO_THREATS.length, last_updated: new Date().toISOString() });
+});
+
+app.get('/api/veille/intelligence', requireAuth, async (req, res) => {
+  try {
+    const items = await aggregateVeilleFeeds();
+    const blob = items.map((i) => i.title).join(' ');
+    const risks = computeRiskSnapshot(blob);
+    res.json({
+      items,
+      risks,
+      updated_at: new Date().toISOString(),
+      source: items.length ? 'rss' : 'empty',
+    });
+  } catch (e) {
+    console.error('Veille intelligence:', e.message || e);
+    res.status(500).json({ error: 'Veille temporairement indisponible' });
+  }
 });
 
 // ═══════════════════════════════════════
