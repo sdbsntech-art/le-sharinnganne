@@ -1283,7 +1283,8 @@ const errRes = (statusCode, message) => json({ error: message }, statusCode);
 
 async function route(event) {
   const method = (event.httpMethod || 'GET').toUpperCase();
-  let path = (event.path || '/');
+  let path = (event.path || '/').split('?')[0];
+  path = path.replace(/^\/\.netlify\/functions\/api(?=\/|$)/, '');
   if (!path.startsWith('/api')) {
     path = '/api' + path;
   }

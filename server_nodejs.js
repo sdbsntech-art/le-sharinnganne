@@ -1792,11 +1792,19 @@ app.use((err, req, res, next) => {
 // ═══════════════════════════════════════
 // DÉMARRAGE
 // ═══════════════════════════════════════
-app.listen(PORT, async () => {
+const server = app.listen(PORT, async () => {
   await ensureAdminUser();
   console.log(`\n🔴 SHARINNGANNE API — Port ${PORT}`);
   console.log(`   Base MySQL: ${DB_NAME} @ ${DB_HOST}:${DB_PORT}`);
   console.log(`   Admin: ${ADMIN_EMAIL} (mot de passe: ${ADMIN_PASS})\n`);
+});
+
+server.on('error', (error) => {
+  if (error.code === 'EADDRINUSE') {
+    console.error(`\nLe port ${PORT} est déjà utilisé. Arrêtez l'ancien serveur ou lancez avec PORT=3001.`);
+    process.exit(1);
+  }
+  throw error;
 });
 
 // ═══════════════════════════════════════
