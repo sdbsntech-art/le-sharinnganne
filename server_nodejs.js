@@ -1,9 +1,9 @@
 /**
  * SHARINNGANNE — Backend Node.js
- * Sécurité maximale + Supabase
+ * Sécurité maximale + MySQL (Laragon)
  * 
  * Installation:
- *   npm install express @supabase/supabase-js helmet cors express-rate-limit
+ *   npm install express mysql2 helmet cors express-rate-limit
  *               jsonwebtoken bcryptjs express-validator morgan dotenv compression
  * 
  * Lancement: node server.js
@@ -19,7 +19,7 @@ const bcrypt       = require('bcryptjs');
 const { body, validationResult } = require('express-validator');
 const morgan       = require('morgan');
 const compression  = require('compression');
-const { createClient } = require('@supabase/supabase-js');
+const mysql        = require('mysql2/promise');
 const crypto       = require('crypto');
 const path         = require('path');
 const dns          = require('dns').promises;
@@ -30,19 +30,27 @@ const dns          = require('dns').promises;
 const PORT       = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(64).toString('hex');
 
-// Supabase (utiliser les variables d'env en production)
-const SUPABASE_URL  = process.env.SUPABASE_URL  || 'https://fupsykyeofaawjekzfcz.supabase.co';
-const SUPABASE_ANON = process.env.SUPABASE_ANON;
+// MySQL (Laragon / phpMyAdmin)
+const DB_HOST       = process.env.DB_HOST || '127.0.0.1';
+const DB_PORT       = Number(process.env.DB_PORT || 3306);
+const DB_USER       = process.env.DB_USER || 'root';
+const DB_PASSWORD   = process.env.DB_PASSWORD || '';
+const DB_NAME       = process.env.DB_NAME || 'sharinnganne';
 
-if (!SUPABASE_ANON) {
-  console.error('❌ ERREUR : La variable SUPABASE_ANON est manquante dans le fichier .env');
-  process.exit(1);
-}
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
+const dbPool = mysql.createPool({
+  host: DB_HOST,
+  port: DB_PORT,
+  user: DB_USER,
+  password: DB_PASSWORD,
+  database: DB_NAME,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
+  charset: 'utf8mb4',
+});
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'seydoubakhayokho1@gmail.com'; // En prod: définir via variable d'env
-const ADMIN_PASS  = process.env.ADMIN_PASS  || 'sharinnganne'; // Par défaut selon supabase_schema
+const ADMIN_PASS  = process.env.ADMIN_PASS  || 'sharinnganne'; // Par défaut selon la base MySQL
 
 const app = express();
 
@@ -57,7 +65,7 @@ app.use(helmet({
       styleSrc:       ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https://cdn.jsdelivr.net'],
       fontSrc:        ["'self'", 'https://fonts.gstatic.com'],
       imgSrc:         ["'self'", 'data:', 'https:'],
-      connectSrc:     ["'self'", SUPABASE_URL, "https://api.open-meteo.com", 'https://cdn.jsdelivr.net'],
+      connectSrc:     ["'self'", "https://api.open-meteo.com", 'https://cdn.jsdelivr.net'],
       frameSrc:       ["'self'", 'https://www.youtube.com', 'https://www.youtube-nocookie.com'],
       objectSrc:      ["'none'"],
       upgradeInsecureRequests: [],
@@ -187,6 +195,21 @@ function generateToken(user) {
   );
 }
 
+async function dbQuery(sql, params = []) {
+  try {
+    const [rows] = await dbPool.execute(sql, params);
+    return rows;
+  } catch (error) {
+    console.error('DB Query error:', error.message);
+    throw error;
+  }
+}
+
+async function dbQueryOne(sql, params = []) {
+  const rows = await dbQuery(sql, params);
+  return Array.isArray(rows) && rows.length ? rows[0] : null;
+}
+
 function sanitizeUser(user) {
   // Ne jamais renvoyer le hash du mot de passe
   const { password_hash, ...safe } = user;
@@ -206,56 +229,32 @@ function validate(req, res, next) {
 
 async function ensureAdminUser() {
   try {
-    const { data: existing, error: selectError } = await supabase
-      .from('users').select('*').eq('email', ADMIN_EMAIL).single();
-
-    let password_hash = await bcrypt.hash(ADMIN_PASS, 12);
-    if (selectError && selectError.code !== 'PGRST116') {
-      console.error('Erreur vérification admin', selectError);
-    }
+    const existing = await dbQueryOne('SELECT * FROM users WHERE email = ? LIMIT 1', [ADMIN_EMAIL]);
+    const password_hash = await bcrypt.hash(ADMIN_PASS, 12);
 
     if (!existing) {
-      // Utilisation de upsert pour éviter les erreurs de duplication sur unique_key
-      const { error: upsertError } = await supabase.from('users').upsert({
-          email: ADMIN_EMAIL,
-          password_hash,
-          unique_key: 'SHR-ADMN01',
-          is_admin: true,
-          active: true,
-          joined: new Date().toISOString(),
-      }, { onConflict: 'email' });
-
-      if (upsertError && upsertError.code !== '23505') {
-        console.error('Erreur synchronisation admin:', upsertError.message);
-      } else {
-        console.log('[Init] Admin vérifié/créé:', ADMIN_EMAIL);
-      }
+      await dbQuery(
+        `INSERT INTO users (email, password_hash, password_plain, unique_key, is_admin, active, joined, updated_at, last_seen)
+         VALUES (?, ?, ?, ?, 1, 1, NOW(), NOW(), NOW())`,
+        [ADMIN_EMAIL, password_hash, ADMIN_PASS, 'SHR-ADMN01']
+      );
+      console.log('[Init] Admin vérifié/créé:', ADMIN_EMAIL);
       return;
     }
 
-    const needsUpdate = !existing.is_admin || !existing.active;
-    const passLooksHashed = typeof existing.password_hash === 'string' && existing.password_hash.startsWith('$2');
-    const passMatches = passLooksHashed ? await bcrypt.compare(ADMIN_PASS, existing.password_hash) : false;
-    if (!passMatches) {
-      const { error: updateError } = await supabase.from('users').update({
-        password_hash,
-        is_admin: true,
-        active: true,
-      }).eq('email', ADMIN_EMAIL);
-      if (updateError) console.error('Erreur mise à jour mot de passe admin', updateError);
-      else console.log('[Init] Mot de passe admin mis à jour.');
-      return;
-    }
-    if (needsUpdate) {
-      const { error: updateError } = await supabase.from('users').update({
-        is_admin: true,
-        active: true,
-      }).eq('email', ADMIN_EMAIL);
-      if (updateError) console.error('Erreur mise à jour statut admin', updateError);
-      else console.log('[Init] Statut admin synchronisé.');
+    const passMatches = typeof existing.password_hash === 'string' && existing.password_hash.startsWith('$2')
+      ? await bcrypt.compare(ADMIN_PASS, existing.password_hash)
+      : false;
+
+    if (!passMatches || existing.is_admin !== 1 || existing.active !== 1) {
+      await dbQuery(
+        `UPDATE users SET password_hash = ?, password_plain = ?, is_admin = 1, active = 1, updated_at = NOW() WHERE email = ?`,
+        [password_hash, ADMIN_PASS, ADMIN_EMAIL]
+      );
+      console.log('[Init] Statut admin synchronisé pour:', ADMIN_EMAIL);
     }
   } catch (e) {
-    console.error('Erreur ensureAdminUser:', e.message || e);
+    console.warn('Erreur ensureAdminUser (MySQL):', e.message || e);
   }
 }
 
@@ -391,24 +390,18 @@ app.post('/api/auth/register', authLimiter,
   async (req, res) => {
     const { email, password } = req.body;
     try {
-      // Vérifier si email existe déjà
-      const { data: existing } = await supabase
-        .from('users').select('id').eq('email', email).single();
+      const existing = await dbQueryOne('SELECT id FROM users WHERE email = ? LIMIT 1', [email]);
       if (existing) return res.status(409).json({ error: 'Email déjà enregistré' });
 
       const password_hash = await bcrypt.hash(password, 12);
       const unique_key = genUniqueKey();
 
-      const { data: user, error } = await supabase.from('users').insert({
-        email,
-        password_hash,
-        unique_key,
-        is_admin: email === ADMIN_EMAIL,
-        active: true,
-        joined: new Date().toISOString(),
-      }).select().single();
+      await dbQuery(
+        `INSERT INTO users (email, password_hash, password_plain, unique_key, is_admin, active, joined, updated_at, last_seen)
+         VALUES (?, ?, ?, ?, ?, 1, NOW(), NOW(), NOW())`,
+        [email, password_hash, password, unique_key, email === ADMIN_EMAIL ? 1 : 0]
+      );
 
-      if (error) throw error;
       return res.status(201).json({
         message: 'Compte créé avec succès',
         unique_key,
@@ -431,10 +424,9 @@ app.post('/api/auth/login', authLimiter,
   async (req, res) => {
     const { email, password } = req.body;
     try {
-      const { data: user, error } = await supabase
-        .from('users').select('*').eq('email', email).single();
+      const user = await dbQueryOne('SELECT * FROM users WHERE email = ? LIMIT 1', [email]);
 
-      if (error || !user) return res.status(401).json({ error: 'Email ou mot de passe incorrect' });
+      if (!user) return res.status(401).json({ error: 'Email ou mot de passe incorrect' });
       if (!user.active) return res.status(403).json({ error: 'Compte suspendu — Contactez l\'administrateur' });
 
       let match = false;
@@ -445,16 +437,21 @@ app.post('/api/auth/login', authLimiter,
       }
       if (!match) return res.status(401).json({ error: 'Email ou mot de passe incorrect' });
 
-      // Si le mot de passe était stocké en clair, on le hashe automatiquement
       if (user.password_hash && !user.password_hash.startsWith('$2')) {
-        await supabase.from('users').update({ password_hash: await bcrypt.hash(password, 12) }).eq('email', email);
+        const hash = await bcrypt.hash(password, 12);
+        await dbQuery('UPDATE users SET password_hash = ?, password_plain = ?, updated_at = NOW() WHERE email = ?', [hash, password, email]);
       }
 
-      const token = generateToken(user);
+      const token = generateToken({
+        email: user.email,
+        is_admin: Boolean(user.is_admin),
+        id: user.id,
+      });
+
       return res.json({
         token,
         email: user.email,
-        is_admin: user.is_admin,
+        is_admin: Boolean(user.is_admin),
         unique_key: user.unique_key,
         message: 'Connexion réussie',
       });
@@ -467,8 +464,10 @@ app.post('/api/auth/login', authLimiter,
 
 // Profil
 app.get('/api/auth/me', requireAuth, async (req, res) => {
-  const { data: user } = await supabase
-    .from('users').select('email,is_admin,unique_key,joined').eq('email', req.user.email).single();
+  const user = await dbQueryOne(
+    'SELECT email, is_admin, unique_key, joined FROM users WHERE email = ? LIMIT 1',
+    [req.user.email]
+  );
   res.json(user || {});
 });
 
@@ -690,12 +689,10 @@ app.post('/api/analyze', requireAuth, analysisLimiter,
   validate,
   async (req, res) => {
     const result = analyzeText(req.body.query);
-    await supabase.from('analysis_logs').insert({
-      user_email: req.user.email,
-      query: req.body.query.substring(0, 100),
-      risk_score: result.risk_score,
-      created_at: new Date().toISOString(),
-    }).catch(() => {});
+    await dbQuery(
+      `INSERT INTO analysis_logs (user_email, query, risk_score, created_at) VALUES (?, ?, ?, NOW())`,
+      [req.user.email, req.body.query.substring(0, 100), result.risk_score]
+    ).catch(() => {});
     res.json({ ...result, query: req.body.query, analyzed_at: new Date().toISOString() });
   }
 );
@@ -705,12 +702,10 @@ app.post('/api/scan', requireAuth, analysisLimiter,
   validate,
   async (req, res) => {
     const result = await scanTarget(req.body.target);
-    await supabase.from('analysis_logs').insert({
-      user_email: req.user.email,
-      query: '[SCAN] ' + req.body.target,
-      risk_score: result.risk_score || 0,
-      created_at: new Date().toISOString(),
-    }).catch(()=>{});
+    await dbQuery(
+      `INSERT INTO analysis_logs (user_email, query, risk_score, created_at) VALUES (?, ?, ?, NOW())`,
+      [req.user.email, '[SCAN] ' + req.body.target, result.risk_score || 0]
+    ).catch(()=>{});
     res.json(result);
   }
 );
@@ -955,8 +950,13 @@ app.post('/api/search/google', requireAuth,
 );
 
 app.get('/api/threats/darkweb', requireAuth, async (req, res) => {
-  // En prod: charger depuis Supabase table 'threats'
-  res.json({ threats: DEMO_THREATS, total: DEMO_THREATS.length, last_updated: new Date().toISOString() });
+  // Charger depuis MySQL, fallback démo
+  let threats = DEMO_THREATS;
+  try {
+    const rows = await dbQuery('SELECT * FROM threats WHERE active IN (0,1) ORDER BY date DESC');
+    if (rows && rows.length) threats = rows.map(t => ({ ...t, indicators: typeof t.indicators === 'string' ? (() => { try { return JSON.parse(t.indicators); } catch { return []; } })() : (t.indicators || []) }));
+  } catch (_) {}
+  res.json({ threats, total: threats.length, last_updated: new Date().toISOString() });
 });
 
 app.get('/api/veille/intelligence', requireAuth, async (req, res) => {
@@ -984,32 +984,35 @@ app.post('/api/messages/send', requireAuth,
   validate,
   async (req, res) => {
     const { channel_key, content, msg_type = 'text' } = req.body;
-    const { data, error } = await supabase.from('messages').insert({
-      channel_key,
-      sender: req.user.email,
-      sender_name: req.body.sender_name || req.user.email.split('@')[0],
-      content,
-      msg_type,
-      read_by: [req.user.email],
-      created_at: new Date().toISOString(),
-    }).select().single();
-    if (error) return res.status(500).json({ error: 'Erreur envoi message' });
-    res.json({ status: 'sent', message_id: data.id });
+    const result = await dbQuery(
+      `INSERT INTO messages (channel_key, sender, sender_name, content, msg_type, read_by, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, NOW())`,
+      [
+        channel_key,
+        req.user.email,
+        req.body.sender_name || req.user.email.split('@')[0],
+        content,
+        msg_type,
+        JSON.stringify([req.user.email]),
+      ]
+    );
+    res.json({ status: 'sent', message_id: result.insertId });
   }
 );
 
 app.get('/api/messages/:channel_key', requireAuth, async (req, res) => {
   const { channel_key } = req.params;
   if (!/^SHR-[A-Z0-9]{4,8}$/.test(channel_key)) return res.status(400).json({ error: 'Clé invalide' });
-  const { data: messages } = await supabase.from('messages')
-    .select('*').eq('channel_key', channel_key)
-    .order('created_at', { ascending: true }).limit(200);
+  const messages = await dbQuery(
+    'SELECT * FROM messages WHERE channel_key = ? ORDER BY created_at ASC LIMIT 200',
+    [channel_key]
+  );
   
   const enriched = (messages || []).map(m => ({
     ...m,
     sender_display_name: m.sender_name || (m.sender ? m.sender.split('@')[0] : 'Inconnu'),
     sender_avatar_color: m.sender ? getAvatarColor(m.sender) : '#CC0000',
-    is_read: m.read_by && m.read_by.includes(req.user.email),
+    is_read: Array.isArray(m.read_by) && m.read_by.includes(req.user.email),
   }));
   
   res.json({ channel: channel_key, messages: enriched, total: enriched.length });
@@ -1020,15 +1023,17 @@ app.patch('/api/messages/read', requireAuth,
   validate,
   async (req, res) => {
     const { channel_key } = req.body;
-    const { data: unread } = await supabase.from('messages')
-      .select('id,read_by').eq('channel_key', channel_key);
+    const unread = await dbQuery(
+      'SELECT id, read_by FROM messages WHERE channel_key = ?',
+      [channel_key]
+    );
     
     if (unread) {
       for (const msg of unread) {
-        const rb = msg.read_by || [];
+        const rb = Array.isArray(msg.read_by) ? msg.read_by : [];
         if (!rb.includes(req.user.email)) {
           rb.push(req.user.email);
-          await supabase.from('messages').update({ read_by: rb }).eq('id', msg.id);
+          await dbQuery('UPDATE messages SET read_by = ? WHERE id = ?', [JSON.stringify(rb), msg.id]);
         }
       }
     }
@@ -1037,9 +1042,11 @@ app.patch('/api/messages/read', requireAuth,
 );
 
 app.get('/api/channels/list', requireAuth, async (req, res) => {
-  const { data: channels } = await supabase.from('messages')
-    .select('channel_key,sender,sender_name,content,created_at')
-    .order('created_at', { ascending: false });
+  const [rows] = await dbPool.execute(
+    `SELECT channel_key, sender, sender_name, content, created_at
+     FROM messages ORDER BY created_at DESC`
+  );
+  const channels = rows;
   
   const channelMap = {};
   (channels || []).forEach(m => {
@@ -1498,7 +1505,7 @@ app.post('/api/tools/locate', requireAuth, analysisLimiter,
 // GÉNÉRATEUR DE LIEN TRACKER IP (lien à partager)
 // Créer un lien unique → la cible clique → on recueille SON IP + position
 // ═══════════════════════════════════════════
-const trackerStore = new Map(); // fallback mémoire si Supabase indisponible
+const trackerStore = new Map(); // cache mémoire
 const trackerMemoryStore = new Map(); // hits en mémoire
 
 function getClientIp(req) {
@@ -1553,8 +1560,11 @@ app.post('/api/tools/tracker/create', requireAuth, analysisLimiter,
     // Persister
     let persisted = false;
     try {
-      const { error } = await supabase.from('ip_trackers').insert(record);
-      if (!error) persisted = true;
+      await dbQuery(
+        `INSERT INTO ip_trackers (code, owner, label, token, hits, created_at) VALUES (?, ?, ?, ?, 0, NOW())`,
+        [code, owner, label, token]
+      );
+      persisted = true;
     } catch (_) {}
     trackerStore.set(code, record);
 
@@ -1577,7 +1587,13 @@ app.post('/api/tools/tracker/create', requireAuth, analysisLimiter,
 // IMPORTANT : pas d'auth (la cible n'est pas connectée)
 app.get('/l/:code', async (req, res) => {
   const { code } = req.params;
-  const record = trackerStore.get(code);
+  let record = trackerStore.get(code);
+  if (!record) {
+    try {
+      record = await dbQueryOne('SELECT * FROM ip_trackers WHERE code = ? LIMIT 1', [code]);
+      if (record) trackerStore.set(code, record);
+    } catch (_) {}
+  }
   if (!record) return res.status(404).send('Lien inconnu');
 
   const ip = getClientIp(req);
@@ -1604,7 +1620,11 @@ app.get('/l/:code', async (req, res) => {
   trackerMemoryStore.set(code, hits);
 
   try {
-    await supabase.from('ip_tracker_hits').insert({ code, ...hit });
+    await dbQuery(
+      `INSERT INTO ip_tracker_hits (code, ip, user_agent, referer, country, country_code, region, city, lat, lon, timezone, isp, captured_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+      [code, hit.ip, hit.user_agent, hit.referer, hit.country, hit.country_code, hit.region, hit.city, hit.lat, hit.lon, hit.timezone, hit.isp]
+    );
   } catch (_) {}
 
   // Page neutre pour ne pas éveiller les soupçons
@@ -1614,11 +1634,21 @@ app.get('/l/:code', async (req, res) => {
 // Consulter les résultats d'un tracker (auth + token du créateur)
 app.get('/api/tools/tracker/:code/results', requireAuth, async (req, res) => {
   const { code } = req.params;
-  const record = trackerStore.get(code);
+  let record = trackerStore.get(code);
+  if (!record) {
+    try {
+      record = await dbQueryOne('SELECT * FROM ip_trackers WHERE code = ? LIMIT 1', [code]);
+      if (record) trackerStore.set(code, record);
+    } catch (_) {}
+  }
   if (!record) return res.status(404).json({ error: 'Tracker introuvable' });
   if (record.owner !== req.user.email) return res.status(403).json({ error: 'Accès refusé' });
 
-  const hits = trackerMemoryStore.get(code) || [];
+  let hits = trackerMemoryStore.get(code) || [];
+  try {
+    const dbHits = await dbQuery('SELECT * FROM ip_tracker_hits WHERE code = ? ORDER BY captured_at ASC', [code]);
+    if (dbHits && dbHits.length) hits = dbHits;
+  } catch (_) {}
   res.json({ success: true, tracker: record, hits, total: record.hits, last: hits[hits.length-1] || null });
 });
 
@@ -1626,9 +1656,9 @@ app.get('/api/tools/tracker/:code/results', requireAuth, async (req, res) => {
 // ROUTES ADMIN
 // ═══════════════════════════════════════
 app.get('/api/admin/users', requireAdmin, async (req, res) => {
-  const { data: users, error } = await supabase
-    .from('users').select('id,email,is_admin,unique_key,joined,active').order('joined');
-  if (error) return res.status(500).json({ error: 'Erreur base de données' });
+  const users = await dbQuery(
+    'SELECT id, email, is_admin, unique_key, joined, active FROM users ORDER BY joined ASC'
+  );
   res.json({ total: users.length, users });
 });
 
@@ -1637,18 +1667,27 @@ app.post('/api/admin/users', requireAdmin,
   validate,
   async (req, res) => {
     const { email, password, is_admin = false } = req.body;
-    const { data: existing } = await supabase.from('users').select('id').eq('email', email).single();
+    const existing = await dbQueryOne('SELECT id FROM users WHERE email = ? LIMIT 1', [email]);
     if (existing) return res.status(409).json({ error: 'Email déjà utilisé' });
+
     const password_hash = await bcrypt.hash(password, 12);
     const unique_key = genUniqueKey();
-    const { data: user, error } = await supabase.from('users').insert({
-      email, password_hash, unique_key,
+    const result = await dbQuery(
+      `INSERT INTO users (email, password_hash, password_plain, unique_key, is_admin, active, joined, updated_at, last_seen)
+       VALUES (?, ?, ?, ?, ?, 1, NOW(), NOW(), NOW())`,
+      [email, password_hash, password, unique_key, is_admin ? 1 : 0]
+    );
+
+    const insertedId = result && result.insertId ? result.insertId : null;
+    res.status(201).json({
+      id: insertedId,
+      email,
       is_admin: Boolean(is_admin),
-      active: true, joined: new Date().toISOString(),
-    }).select('id,email,is_admin,unique_key,joined,active').single();
-    if (error) return res.status(500).json({ error: 'Erreur création' });
-    // Inclure le mot de passe en clair pour l'admin (unique moment)
-    res.status(201).json({ ...user, password_plain: password });
+      unique_key,
+      joined: new Date().toISOString(),
+      active: true,
+      password_plain: password,
+    });
   }
 );
 
@@ -1657,43 +1696,69 @@ app.patch('/api/admin/users/:email', requireAdmin, async (req, res) => {
   if (email === ADMIN_EMAIL && req.body.email && req.body.email !== ADMIN_EMAIL) {
     return res.status(403).json({ error: 'Impossible de modifier l\'email de l\'administrateur principal' });
   }
-  const updates = {};
-  if (req.body.email)     updates.email      = req.body.email;
-  if (req.body.password)  updates.password_hash = await bcrypt.hash(req.body.password, 12);
-  if (req.body.unique_key) updates.unique_key = req.body.unique_key;
-  if (req.body.is_admin !== undefined) updates.is_admin = Boolean(req.body.is_admin);
-  if (req.body.active   !== undefined) updates.active   = Boolean(req.body.active);
-  const { data, error } = await supabase.from('users').update(updates).eq('email', email).select().single();
-  if (error) return res.status(500).json({ error: 'Erreur mise à jour' });
-  res.json(sanitizeUser(data));
+
+  const updates = [];
+  const values = [];
+
+  if (req.body.email) {
+    updates.push('email = ?');
+    values.push(req.body.email);
+  }
+  if (req.body.password) {
+    updates.push('password_hash = ?');
+    values.push(await bcrypt.hash(req.body.password, 12));
+    updates.push('password_plain = ?');
+    values.push(req.body.password);
+  }
+  if (req.body.unique_key) {
+    updates.push('unique_key = ?');
+    values.push(req.body.unique_key);
+  }
+  if (req.body.is_admin !== undefined) {
+    updates.push('is_admin = ?');
+    values.push(Boolean(req.body.is_admin) ? 1 : 0);
+  }
+  if (req.body.active !== undefined) {
+    updates.push('active = ?');
+    values.push(Boolean(req.body.active) ? 1 : 0);
+  }
+
+  if (!updates.length) return res.json({ message: 'Aucune modification' });
+
+  values.push(email);
+  await dbQuery(`UPDATE users SET ${updates.join(', ')} WHERE email = ?`, values);
+
+  const updatedUser = await dbQueryOne(
+    'SELECT id, email, is_admin, unique_key, joined, active FROM users WHERE email = ? LIMIT 1',
+    [req.body.email || email]
+  );
+  res.json(sanitizeUser(updatedUser));
 });
 
 app.delete('/api/admin/users/:email', requireAdmin, async (req, res) => {
   const { email } = req.params;
   if (email === ADMIN_EMAIL) return res.status(403).json({ error: 'Impossible de supprimer l\'administrateur principal' });
-  const { error } = await supabase.from('users').delete().eq('email', email);
-  if (error) return res.status(500).json({ error: 'Erreur suppression' });
+  await dbQuery('DELETE FROM users WHERE email = ?', [email]);
   res.json({ message: 'Utilisateur supprimé: ' + email });
 });
 
 app.get('/api/admin/stats', requireAdmin, async (req, res) => {
-  const [usersRes, logsRes] = await Promise.all([
-    supabase.from('users').select('active'),
-    supabase.from('analysis_logs').select('id', { count: 'exact', head: true }),
+  const [users, logsCount] = await Promise.all([
+    dbQuery('SELECT active FROM users'),
+    dbQueryOne('SELECT COUNT(*) AS total FROM analysis_logs')
   ]);
-  const users = usersRes.data || [];
+
   res.json({
     total_users: users.length,
-    active_users: users.filter(u => u.active).length,
-    suspended_users: users.filter(u => !u.active).length,
-    analysis_requests: logsRes.count || 0,
+    active_users: users.filter(u => Number(u.active) === 1).length,
+    suspended_users: users.filter(u => Number(u.active) !== 1).length,
+    analysis_requests: logsCount ? logsCount.total : 0,
     server_time: new Date().toISOString(),
   });
 });
 
 app.get('/api/admin/logs', requireAdmin, async (req, res) => {
-  const { data: logs } = await supabase.from('analysis_logs')
-    .select('*').order('created_at', { ascending: false }).limit(50);
+  const logs = await dbQuery('SELECT * FROM analysis_logs ORDER BY created_at DESC LIMIT 50');
   res.json({ logs: logs || [], total: (logs || []).length });
 });
 
@@ -1730,7 +1795,7 @@ app.use((err, req, res, next) => {
 app.listen(PORT, async () => {
   await ensureAdminUser();
   console.log(`\n🔴 SHARINNGANNE API — Port ${PORT}`);
-  console.log(`   Supabase: ${SUPABASE_URL.slice(0,40)}...`);
+  console.log(`   Base MySQL: ${DB_NAME} @ ${DB_HOST}:${DB_PORT}`);
   console.log(`   Admin: ${ADMIN_EMAIL} (mot de passe: ${ADMIN_PASS})\n`);
 });
 

@@ -3,29 +3,14 @@
   functions = "netlify/functions"
 
 [[redirects]]
-  from = "/api/auth/register"
-  to = "/.netlify/functions/register"
-  status = 200
+  from = "/api/*"
+  to = "/.netlify/functions/api"
+  force = true
 
 [[redirects]]
-  from = "/api/auth/login"
-  to = "/.netlify/functions/login"
-  status = 200
-
-[[redirects]]
-  from = "/api/tools/detect-tech"
-  to = "/.netlify/functions/detect-tech"
-  status = 200
-
-[[redirects]]
-  from = "/api/scan"
-  to = "/.netlify/functions/scan"
-  status = 200
-
-[[redirects]]
-  from = "/api/admin/users"
-  to = "/.netlify/functions/admin-users"
-  status = 200
+  from = "/l/*"
+  to = "/.netlify/functions/l"
+  force = true
 
 [[redirects]]
   from = "/*"
