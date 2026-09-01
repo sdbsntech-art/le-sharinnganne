@@ -46,7 +46,7 @@ exports.handler = async (event, context) => {
     if (!url.startsWith('http')) url = 'https://' + url;
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
     const start = Date.now();
 
     // 2. Résolution DNS
@@ -57,10 +57,17 @@ exports.handler = async (event, context) => {
       if(ips.length > 0) ip = ips[0];
     } catch(e) {}
 
-    // 3. Scan HTTP
+    // 3. Scan HTTP rapide
     const scanHeaders = { 'User-Agent': 'Mozilla/5.0 SharinngannePentest/3.0' };
-    const res = await fetch(url, { method: 'GET', headers: scanHeaders, signal: controller.signal });
+    const res = await fetch(url, { method: 'HEAD', headers: scanHeaders, signal: controller.signal }).catch(e => ({ error: e.message }));
     clearTimeout(timeoutId);
+
+    if (res.error) {
+      return {
+        statusCode: 200,
+        body: JSON.stringify({ success: false, error: "Cible inaccessible (Timeout 6s).", target: url })
+      };
+    }
 
     const headers = res.headers;
     const hostingInfo = checkFreeHosting(url, headers);
@@ -73,6 +80,8 @@ exports.handler = async (event, context) => {
       vulns.push({type:'CSP Manquant', sev:'ÉLEVÉ', desc:'Protection XSS absente.', fix:'Définir une CSP.'});
     if(!headers.get('x-frame-options')) 
       vulns.push({type:'Clickjacking', sev:'FAIBLE', desc:'Intégration iframe possible.', fix:'Ajouter X-Frame-Options.'});
+    if(!headers.get('x-content-type-options'))
+      vulns.push({type:'MIME Sniffing', sev:'FAIBLE', desc:'MIME type nosniff manquant.', fix:'Ajouter X-Content-Type-Options: nosniff.'});
 
     let riskScore = Math.min(vulns.reduce((acc, v) => acc + (v.sev==='ÉLEVÉ'?30:v.sev==='MOYEN'?15:5), 0), 100);
 
