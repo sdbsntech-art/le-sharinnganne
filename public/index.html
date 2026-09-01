@@ -1922,7 +1922,7 @@ async function doLogin(){
   const btn = document.getElementById('li-btn');
   btn.disabled=true; btn.innerHTML='<span class="loading">...</span>';
   try{
-    const data = await api('/auth/login',{method:'POST',body:JSON.stringify({email,password:pass})});
+    const data = await api('/api/auth/login',{method:'POST',body:JSON.stringify({email,password:pass})});
     currentToken = data.token;
     currentUser  = {email, is_admin:data.is_admin, unique_key:data.unique_key};
     err.textContent = '';
@@ -1942,7 +1942,7 @@ async function doRegister(){
   if(pass.length<8){err.textContent='⚠ Mot de passe trop court (min. 8).';return;}
   if(!terms){err.textContent='⚠ Acceptez les conditions.';return;}
   try{
-    await api('/auth/register',{method:'POST',body:JSON.stringify({email,password:pass,accept_terms:'true'})});
+    await api('/api/auth/register',{method:'POST',body:JSON.stringify({email,password:pass,accept_terms:'true'})});
     err.style.color='var(--safe)'; err.textContent='✓ Compte créé. Connectez-vous.';
     setTimeout(()=>{err.style.color='';err.textContent='';switchTab('login');},2200);
   }catch(e){err.style.color='';err.textContent='⚠ '+e.message;}
