@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
@@ -595,6 +595,9 @@ body{background:var(--dark);color:var(--text);font-family:var(--fu);overflow-x:h
       <button class="btn sec" onclick="openWhoisModal()" style="border-color:#0088FF;color:#0088FF">
         <span data-t="pt_btn_whois">📋 Whois Lookup</span>
       </button>
+      <button class="btn sec" onclick="openWifiModal()" style="border-color:#00e5ff;color:#00e5ff">
+        <span data-t="pt_btn_wifi">📡 Scan & Audit Wi-Fi</span>
+      </button>
       <button class="btn sec" onclick="openTechModal()" style="border-color:#AA00AA;color:#AA00AA">
         <span data-t="pt_btn_tech">🛠️ Stack Detector</span>
       </button>
@@ -863,12 +866,22 @@ body{background:var(--dark);color:var(--text);font-family:var(--fu);overflow-x:h
       
       <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);padding:10px;border-radius:6px;margin-bottom:1rem">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
-          <strong style="color:var(--warn)">1. RECONNAISSANCE & PORTS (Nmap)</strong>
-          <button class="btn sec sm" onclick="copyCmd('nmap -sV -sC -A -T4 target.com', 'Nmap')">📋 Copier</button>
+          <strong style="color:var(--warn)">1. RECONNAISSANCE & PORTS AVANCÉE (Nmap)</strong>
+          <button class="btn sec sm" onclick="copyCmd('nmap -sV -sC -O -A -T4 target.com', 'Nmap')">📋 Copier</button>
         </div>
-        <div style="font-size:0.75rem;color:var(--sub);margin-bottom:5px">Scan complet des services, scripts par défaut, détection d'OS et d'empreintes.</div>
-        <div style="background:#09090b;padding:8px;border:1px solid #27272a;border-radius:4px;color:#00ff66;user-select:text!important">nmap -sV -sC -A -T4 target.com</div>
-        <div style="background:#09090b;padding:8px;border:1px solid #27272a;border-radius:4px;color:#00ff66;margin-top:5px;user-select:text!important">nmap -p- --min-rate 1000 target.com</div>
+        <div style="font-size:0.75rem;color:var(--sub);margin-bottom:5px">Scan approfondi des services, scripts par défaut, détection d'OS et d'empreintes.</div>
+        <div style="background:#09090b;padding:8px;border:1px solid #27272a;border-radius:4px;color:#00ff66;user-select:text!important">nmap -sV -sC -O -A -T4 target.com</div>
+        <div style="background:#09090b;padding:8px;border:1px solid #27272a;border-radius:4px;color:#00ff66;margin-top:5px;user-select:text!important">nmap -p- --min-rate 1000 -T4 target.com</div>
+        <div style="font-size:0.72rem;color:var(--muted);margin:6px 0 2px 0">Audit automatisé des vulnérabilités CVE (Moteur de scripts NSE) :</div>
+        <div style="background:#09090b;padding:8px;border:1px solid #27272a;border-radius:4px;color:#00ff66;user-select:text!important">nmap -sV --script "vuln" target.com</div>
+        <div style="font-size:0.72rem;color:var(--muted);margin:6px 0 2px 0">Scan des services et ciphers SSL/TLS (Failles Heartbleed, POODLE) :</div>
+        <div style="background:#09090b;padding:8px;border:1px solid #27272a;border-radius:4px;color:#00ff66;user-select:text!important">nmap -p 443 --script "ssl-enum-ciphers,ssl-heartbleed,ssl-poodle" target.com</div>
+        <div style="font-size:0.72rem;color:var(--muted);margin:6px 0 2px 0">Scan UDP des ports d'infrastructure critiques (DNS, SNMP, NTP, DHCP) :</div>
+        <div style="background:#09090b;padding:8px;border:1px solid #27272a;border-radius:4px;color:#00ff66;user-select:text!important">sudo nmap -sU -p 53,67,68,123,161,500 -T4 target.com</div>
+        <div style="font-size:0.72rem;color:var(--muted);margin:6px 0 2px 0">Scan furtif SYN avec évasion pare-feu (Fragmentation MTU + Leurres) :</div>
+        <div style="background:#09090b;padding:8px;border:1px solid #27272a;border-radius:4px;color:#00ff66;user-select:text!important">sudo nmap -sS -f --mtu 24 -D RND:5 -g 53 -T2 target.com</div>
+        <div style="font-size:0.72rem;color:var(--muted);margin:6px 0 2px 0">Export complet des rapports (XML, TXT, Grep) :</div>
+        <div style="background:#09090b;padding:8px;border:1px solid #27272a;border-radius:4px;color:#00ff66;user-select:text!important">nmap -sV -sC -p- -oA audit_nmap_rapport target.com</div>
       </div>
 
       <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);padding:10px;border-radius:6px;margin-bottom:1rem">
@@ -919,13 +932,25 @@ body{background:var(--dark);color:var(--text);font-family:var(--fu);overflow-x:h
         <div style="background:#09090b;padding:8px;border:1px solid #27272a;border-radius:4px;color:#00ff66;user-select:text!important">wpscan --url https://target.com --enumerate p,t,u</div>
       </div>
 
-      <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);padding:10px;border-radius:6px;margin-bottom:0.5rem">
+      <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);padding:10px;border-radius:6px;margin-bottom:1rem">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
           <strong style="color:var(--ember)">7. BRUTE FORCE MOTS DE PASSE (Hydra)</strong>
           <button class="btn sec sm" onclick="copyCmd('hydra -l admin -P /usr/share/wordlists/rockyou.txt target.com http-post-form &quot;/login.php:user=^USER^&amp;pass=^PASS^:F=incorrect&quot;', 'Hydra')">📋 Copier</button>
         </div>
         <div style="font-size:0.75rem;color:var(--sub);margin-bottom:5px">Attaque par dictionnaire sur mire d'authentification HTTP.</div>
         <div style="background:#09090b;padding:8px;border:1px solid #27272a;border-radius:4px;color:#ff3366;user-select:text!important">hydra -l admin -P /usr/share/wordlists/rockyou.txt target.com http-post-form "/login.php:user=^USER^&pass=^PASS^:F=incorrect"</div>
+      </div>
+
+      <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);padding:10px;border-radius:6px;margin-bottom:0.5rem">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+          <strong style="color:#00e5ff">8. AUDIT & DIAGNOSTIC RÉSEAU WI-FI (Aircrack-ng, Wash, Nmcli)</strong>
+          <button class="btn sec sm" onclick="copyCmd('nmcli dev wifi list', 'Wi-Fi Scan')">📋 Copier</button>
+        </div>
+        <div style="font-size:0.75rem;color:var(--sub);margin-bottom:5px">Énumération des points d'accès, canaux, intensités RSSI et sécurité WPA/WPA3.</div>
+        <div style="background:#09090b;padding:8px;border:1px solid #27272a;border-radius:4px;color:#00e5ff;user-select:text!important">nmcli dev wifi list</div>
+        <div style="background:#09090b;padding:8px;border:1px solid #27272a;border-radius:4px;color:#00e5ff;margin-top:5px;user-select:text!important">sudo wash -i wlan0mon</div>
+        <div style="background:#09090b;padding:8px;border:1px solid #27272a;border-radius:4px;color:#00e5ff;margin-top:5px;user-select:text!important">sudo airodump-ng --bssid AA:BB:CC:DD:EE:FF -c 6 -w capture_audit wlan0mon</div>
+        <div style="background:#09090b;padding:8px;border:1px solid #27272a;border-radius:4px;color:#00e5ff;margin-top:5px;user-select:text!important">netsh wlan show networks mode=bssid</div>
       </div>
     </div>
   </div>
@@ -971,6 +996,66 @@ body{background:var(--dark);color:var(--text);font-family:var(--fu);overflow-x:h
       <div style="display:flex;gap:0.5rem"><input class="fi" id="tech-target" type="text" placeholder="https://site.com"/><button class="btn" onclick="fetchTechStack()">Analyser</button></div>
       <div id="tech-result" style="margin-top:1rem;min-height:100px;font-family:var(--fm);font-size:0.8rem;color:var(--text)"></div>
     </div>
+  </div>
+</div>
+
+<div class="modal-ov" id="wifi-modal">
+  <div class="modal" style="max-width:720px">
+    <button class="modal-x" onclick="closeModal('wifi-modal')">✕</button>
+    <div class="modal-title" style="color:#00e5ff">📡 SCAN & AUDIT DE SÉCURITÉ WI-FI (802.11)</div>
+    
+    <div style="font-size:0.8rem;color:var(--sub);margin-bottom:1rem">
+      Analysez la posture de sécurité d'un réseau sans-fil à partir de son BSSID (Adresse MAC), protocole de chiffrement et paramètres WPS.
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.8rem;margin-bottom:0.8rem">
+      <div>
+        <label style="font-size:0.75rem;color:var(--sub);display:block;margin-bottom:4px">Adresse MAC / BSSID</label>
+        <input class="fi" id="wifi-bssid" type="text" placeholder="ex: 00:1A:2B:3C:4D:5E ou AC:86:74:11:22:33" value="00:1A:2B:3C:4D:5E" style="font-family:var(--fm);font-size:0.82rem"/>
+      </div>
+      <div>
+        <label style="font-size:0.75rem;color:var(--sub);display:block;margin-bottom:4px">Nom du Réseau (SSID)</label>
+        <input class="fi" id="wifi-ssid" type="text" placeholder="ex: Livebox-Corp-5G" value="Livebox-Audit-Sec"/>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.8rem;margin-bottom:1rem">
+      <div>
+        <label style="font-size:0.75rem;color:var(--sub);display:block;margin-bottom:4px">Chiffrement / Sécurité</label>
+        <select class="fi" id="wifi-encryption">
+          <option value="wpa2_aes" selected>WPA2-PSK (AES-CCMP)</option>
+          <option value="wpa3_sae">WPA3-SAE (Dragonfly)</option>
+          <option value="wpa_tkip">WPA-TKIP (Obsolète)</option>
+          <option value="wep">WEP 64/128 (Vulnérable)</option>
+          <option value="open">Open (Sans chiffrement)</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:0.75rem;color:var(--sub);display:block;margin-bottom:4px">Fonction WPS</label>
+        <select class="fi" id="wifi-wps">
+          <option value="true">Activé (WPS PIN / Push)</option>
+          <option value="false" selected>Désactivé (Recommandé)</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:0.75rem;color:var(--sub);display:block;margin-bottom:4px">Canal / Signal RSSI</label>
+        <div style="display:flex;gap:4px">
+          <input class="fi" id="wifi-channel" type="text" placeholder="Canal" value="6" style="width:40%"/>
+          <input class="fi" id="wifi-signal" type="text" placeholder="Signal" value="-62 dBm" style="width:60%"/>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:0.5rem;align-items:center">
+      <button class="btn" onclick="runWifiAudit()" style="background:#00e5ff;color:#000;font-weight:700;flex:1">
+        📡 LANCER LE DIAGNOSTIC WI-FI
+      </button>
+      <button class="btn sec" onclick="fillRandomWifiDemo()" style="border-color:#00e5ff;color:#00e5ff">
+        🎲 Cible Démo
+      </button>
+    </div>
+
+    <div id="wifi-results-box" style="display:none;margin-top:1.2rem;background:#09090b;border:1px solid #27272a;border-radius:6px;padding:1rem;font-family:var(--fm);font-size:0.8rem;color:#e4e4e7;max-height:50vh;overflow-y:auto"></div>
   </div>
 </div>
 
@@ -1073,7 +1158,7 @@ const LANGS = {
     hw_title:'⚠ INTRUSION DÉTECTÉE ⚠', hw_msg:'Le Sharingan vous observe.\nToute tentative d\'inspection est tracée.',
     search_placeholder:'URL, texte ou domaine à analyser...',
     pt_ph:'URL cible à scanner...', pt_btn_attack:'LANCER L\'ATTAQUE', pt_btn_git:'Déployer & Scanner', pt_btn_tech:'🛠️ Stack Detector',
-    pt_rep_title:'Rapport d\'Audit', git_modal_t:'🚀 Déploiement & Scan', git_target_lbl:'URL de Production (Cible)', pt_btn_bf:'💥 Brute Force (Simu)', pt_btn_kali:'💻 Commandes Kali', pt_btn_whois:'📋 Whois Lookup',
+    pt_rep_title:'Rapport d\'Audit', git_modal_t:'🚀 Déploiement & Scan', git_target_lbl:'URL de Production (Cible)', pt_btn_bf:'💥 Brute Force (Simu)', pt_btn_kali:'💻 Commandes Kali', pt_btn_whois:'📋 Whois Lookup', pt_btn_wifi:'📡 Scan & Audit Wi-Fi',
     git_btn_run:'Déployer & Scanner',
     google_placeholder:'Votre recherche Google...',
     dark_placeholder:'Filtrer les menaces...',
@@ -1084,7 +1169,7 @@ const LANGS = {
   en: {
     nav_pentest:'💀 Pentest', pentest_sub:'Intrusion Test · GitHub Deploy · Security Audit',
     pt_ph:'Target URL to scan...', pt_btn_attack:'LAUNCH ATTACK', pt_btn_git:'Deploy & Scan', pt_btn_tech:'🛠️ Stack Detector',
-    pt_rep_title:'Audit Report', git_modal_t:'🚀 Deploy & Scan', git_target_lbl:'Production URL (Target)', pt_btn_bf:'💥 Brute Force (Sim)', pt_btn_kali:'💻 Kali Commands', pt_btn_whois:'📋 Whois Lookup',
+    pt_rep_title:'Audit Report', git_modal_t:'🚀 Deploy & Scan', git_target_lbl:'Production URL (Target)', pt_btn_bf:'💥 Brute Force (Sim)', pt_btn_kali:'💻 Kali Commands', pt_btn_whois:'📋 Whois Lookup', pt_btn_wifi:'📡 Scan & Audit Wi-Fi',
     git_btn_run:'Deploy & Scan',
     tagline:'See · Predict · Protect', tab_login:'Login', tab_register:'Sign Up',
     lbl_email:'Email Address', lbl_pass:'Password', lbl_newpass:'Create Password',
@@ -1175,7 +1260,7 @@ const LANGS = {
   wo: {
     nav_pentest:'💀 Pentest', pentest_sub:'Seet bu dëgër · GitHub · Audit',
     pt_ph:'Bindal URL bi...', pt_btn_attack:'DOOR LEGI', pt_btn_git:'Deploy & Seet', pt_btn_tech:'🛠️ Stack Detector',
-    pt_rep_title:'Xibaar Audit', git_modal_t:'🚀 Deploy & Seet', git_target_lbl:'URL bu dëgg', pt_btn_bf:'💥 Brute Force (Sim)', pt_btn_kali:'💻 Kali Commands', pt_btn_whois:'📋 Whois Lookup',
+    pt_rep_title:'Xibaar Audit', git_modal_t:'🚀 Deploy & Seet', git_target_lbl:'URL bu dëgg', pt_btn_bf:'💥 Brute Force (Sim)', pt_btn_kali:'💻 Kali Commands', pt_btn_whois:'📋 Whois Lookup', pt_btn_wifi:'📡 Seet Wi-Fi',
     git_btn_run:'Deploy & Seet',
     tagline:'Gis · Xam · Bëgg', tab_login:'Dugg', tab_register:'Bind',
     lbl_email:'Aadresse Email', lbl_pass:'Diggël bi', lbl_newpass:'Bind diggël',
@@ -1589,6 +1674,77 @@ function demoMode(path, opts){
       details: isFaille ? `La charge utile "${payload}" contourne les filtres basiques de saisie.` : `La charge "${payload}" a été filtrée avec succès.`,
       remediation: `Utiliser DOMPurify/textContent et configurer une CSP stricte (default-src 'self').`,
       timestamp: new Date().toISOString()
+    };
+  }
+  if(path==='/tools/wifi-audit'){
+    const bssid = (body.bssid || '00:1A:2B:3C:4D:5E').toUpperCase().trim();
+    const ssid = body.ssid || 'Wi-Fi-Cible';
+    const enc = body.encryption || 'wpa2_aes';
+    const wps = body.wps === true || body.wps === 'true';
+    const channel = body.channel || '6';
+    const signal = body.signal || '-65 dBm';
+
+    const VENDORS = {
+      '00:14:22': 'Dell Inc.', 'F0:9F:C2': 'Ubiquiti Networks', 'C0:25:E9': 'TP-Link Technologies',
+      '00:24:D7': 'Intel Corporate', 'AC:86:74': 'Cisco Systems / Meraki', 'DC:08:56': 'Sagemcom Broadband',
+      '00:1A:2B': 'Netgear Inc.', 'E0:63:DA': 'Apple Inc.', 'BC:99:11': 'Huawei Technologies',
+      '28:6C:07': 'Xiaomi Communications', '00:0C:29': 'VMware Inc.', 'B8:27:EB': 'Raspberry Pi Foundation'
+    };
+    let vendor = 'Constructeur OUI Standard';
+    for (const [k, v] of Object.entries(VENDORS)) {
+      if (bssid.startsWith(k)) { vendor = v; break; }
+    }
+
+    let score = 85;
+    let riskLevel = 'FAIBLE';
+    let encDesc = 'WPA2-PSK (AES-CCMP) — Chiffrement standard';
+    const vulns = [];
+    const recommendations = [];
+
+    if (enc === 'open') {
+      score = 0; riskLevel = 'CRITIQUE'; encDesc = 'Réseau Ouvert (Aucun chiffrement)';
+      vulns.push('Trafic diffusé en clair sans isolation : écoute passive possible sans clé.', 'Sensible aux attaques Man-in-the-Middle et Rogue AP.');
+      recommendations.push('Activer immédiatement WPA3-SAE ou WPA2-Enterprise (802.1X).', 'Configurer l\'isolation des clients (AP Isolation).');
+    } else if (enc === 'wep') {
+      score = 10; riskLevel = 'CRITIQUE'; encDesc = 'WEP 64/128 (RC4 - Obsolète et Déprécié)';
+      vulns.push('Vecteurs d\'initialisation (IV) faibles et collisions de clés RC4.', 'Clé WEP reconstructible par analyse statistique de paquets ARP.');
+      recommendations.push('Migrer sans délai vers WPA3 ou WPA2-AES.', 'Désactiver le support legacy 802.11b.');
+    } else if (enc === 'wpa_tkip') {
+      score = 35; riskLevel = 'ÉLEVÉ'; encDesc = 'WPA (TKIP - Vulnérabilités structurelles)';
+      vulns.push('Faiblesses de l\'algorithme Michael MIC (Attaques Beck-Tews).', 'Chiffrement déprécié par la Wi-Fi Alliance.');
+      recommendations.push('Remplacer le mode TKIP par AES-CCMP exclusif ou WPA3-SAE.');
+    } else if (enc === 'wpa2_aes') {
+      if (wps) {
+        score = 50; riskLevel = 'MOYEN'; encDesc = 'WPA2-PSK (AES) avec WPS Activé';
+        vulns.push('WPS vulnérable aux attaques par force brute de PIN et Pixie Dust (CVE-2014-4199).', 'Le 4-way handshake est exposé si le mot de passe est court (< 12 caractères).');
+        recommendations.push('Désactiver impérativement le WPS dans l\'interface du routeur.', 'Adopter une clé de plus de 16 caractères aléatoires.', 'Activer les trames de gestion protégées (802.11w PMF).');
+      } else {
+        score = 85; riskLevel = 'BON'; encDesc = 'WPA2-PSK (AES-CCMP) — Robuste';
+        vulns.push('Exposition aux attaques par dictionnaire hors-ligne si la clé pré-partagée est faible.');
+        recommendations.push('Utiliser une clé complexe de plus de 16 caractères.', 'Planifier la transition vers WPA3-Personal.');
+      }
+    } else if (enc === 'wpa3_sae') {
+      score = 98; riskLevel = 'EXCELLENT'; encDesc = 'WPA3-Personal (Protocole SAE Dragonfly + 802.11w PMF)';
+      vulns.push('Aucune faiblesse structurelle connue ; résistant aux attaques par dictionnaire hors-ligne.');
+      recommendations.push('Vérifier que les trames de gestion protégées (PMF) sont obligatoires.', 'Maintenir le firmware à jour.');
+    }
+
+    return {
+      success: true,
+      data: {
+        ssid, bssid, vendor, channel, signal,
+        encryption: encDesc,
+        wps: wps ? 'ACTIVÉ (VULNÉRABILITÉ WPS PIN / Pixie Dust)' : 'DÉSACTIVÉ (Sécurisé)',
+        score, risk_level: riskLevel,
+        vulnerabilities: vulns, recommendations,
+        cli_commands: [
+          `# 1. Énumération des réseaux sans-fil (Linux/Kali)\nnmcli dev wifi list`,
+          `# 2. Diagnostic des paramètres BSSID sous Windows\nnetsh wlan show networks mode=bssid`,
+          `# 3. Capture diagnostique ciblée sur le BSSID (Kali Linux)\nsudo airodump-ng --bssid ${bssid} -c ${channel} -w audit_${ssid.replace(/[^a-zA-Z0-9]/g, '_')} wlan0mon`,
+          `# 4. Vérification de la vulnérabilité WPS (Pixie Dust)\nsudo wash -i wlan0mon -b ${bssid}`
+        ],
+        timestamp: new Date().toISOString()
+      }
     };
   }
   if(path==='/tools/detect-tech') return { success:true, data:{ languages:['(démo)'], web_servers:[], cms:[], frameworks:[], apis:[] } };
@@ -2424,17 +2580,22 @@ Date: ${new Date().toISOString()}
 =====================================================
 
 1. COMMANDES KALI LINUX :
-- Nmap:     nmap -sV -sC -A -T4 target.com
-- Nmap Full: nmap -p- -sV -sC -O -T4 target.com
-- Nikto:    nikto -h https://target.com -ssl
-- Nuclei:   nuclei -u https://target.com -severity critical,high -o report.txt
-- Gobuster: gobuster dir -u https://target.com -w /usr/share/wordlists/dirb/common.txt -x php,html,js,json
-- Ffuf:     ffuf -u https://target.com/FUZZ -w /usr/share/wordlists/dirbuster/directory-list-2.0-medium.txt -mc 200,301,403
-- Sqlmap:   sqlmap -u "https://target.com/page.php?id=1" --batch --dbs --risk=3 --level=5
-- XSStrike: python3 xsstrike.py -u "https://target.com/search?q=test" --crawl
-- Commix:   commix -u "https://target.com/page.php?cmd=ls" --all
-- Hydra:    hydra -l admin -P /usr/share/wordlists/rockyou.txt target.com http-post-form "/login.php:user=^USER^&pass=^PASS^:F=incorrect"
-- WPScan:   wpscan --url https://target.com --enumerate p,t,u
+- Nmap Standard:   nmap -sV -sC -O -A -T4 target.com
+- Nmap Full:       nmap -p- --min-rate 1000 -T4 target.com
+- Nmap NSE Vuln:   nmap -sV --script "vuln" target.com
+- Nmap SSL/TLS:    nmap -p 443 --script "ssl-enum-ciphers,ssl-heartbleed,ssl-poodle" target.com
+- Nmap UDP Infra:  sudo nmap -sU -p 53,67,68,123,161,500 -T4 target.com
+- Nmap Evasion:    sudo nmap -sS -f --mtu 24 -D RND:5 -g 53 -T2 target.com
+- Nikto Web:       nikto -h https://target.com -ssl
+- Nuclei CVE:      nuclei -u https://target.com -severity critical,high -o report.txt
+- Gobuster Dir:    gobuster dir -u https://target.com -w /usr/share/wordlists/dirb/common.txt -x php,html,js,json
+- Ffuf Fuzzing:    ffuf -u https://target.com/FUZZ -w /usr/share/wordlists/dirbuster/directory-list-2.0-medium.txt -mc 200,301,403
+- Sqlmap SQLi:     sqlmap -u "https://target.com/page.php?id=1" --batch --dbs --risk=3 --level=5
+- XSStrike XSS:    python3 xsstrike.py -u "https://target.com/search?q=test" --crawl
+- Commix OS:       commix -u "https://target.com/page.php?cmd=ls" --all
+- Hydra Login:     hydra -l admin -P /usr/share/wordlists/rockyou.txt target.com http-post-form "/login.php:user=^USER^&pass=^PASS^:F=incorrect"
+- WPScan CMS:      wpscan --url https://target.com --enumerate p,t,u
+- Wi-Fi Scan:      nmcli dev wifi list / sudo wash -i wlan0mon / sudo airodump-ng wlan0mon
 
 2. PAYLOADS DE TEST INJECTION :
 --- XSS / HTML ---
@@ -2545,6 +2706,109 @@ async function fetchTechStack() {
       ${mkSection('🔌 APIs & SERVICES', d.apis)}
     ` || '<div style="color:var(--sub)">Aucune technologie spécifique détectée (Site statique ou protégé).</div>';
   } catch(e) { out.textContent = 'Erreur: ' + e.message; }
+}
+
+// ══════════════════════════════════════════
+// WI-FI SECURITY SCANNER & DIAGNOSTIC
+// ══════════════════════════════════════════
+function openWifiModal() {
+  openModal('wifi-modal');
+}
+
+function fillRandomWifiDemo() {
+  const demos = [
+    { bssid: 'AC:86:74:9A:BC:DE', ssid: 'Corp-HQ-Meraki', enc: 'wpa3_sae', wps: 'false', ch: '36', sig: '-54 dBm' },
+    { bssid: 'DC:08:56:11:22:33', ssid: 'Livebox-7890-5GHz', enc: 'wpa2_aes', wps: 'true', ch: '6', sig: '-65 dBm' },
+    { bssid: 'C0:25:E9:44:55:66', ssid: 'TP-Link_Guest_Legacy', enc: 'wpa_tkip', wps: 'false', ch: '11', sig: '-72 dBm' },
+    { bssid: '00:14:22:77:88:99', ssid: 'Old-Warehouse-AP', enc: 'wep', wps: 'false', ch: '1', sig: '-80 dBm' },
+    { bssid: 'F0:9F:C2:AA:BB:CC', ssid: 'Airport-Public-Free', enc: 'open', wps: 'false', ch: '6', sig: '-58 dBm' }
+  ];
+  const chosen = demos[Math.floor(Math.random() * demos.length)];
+  document.getElementById('wifi-bssid').value = chosen.bssid;
+  document.getElementById('wifi-ssid').value = chosen.ssid;
+  document.getElementById('wifi-encryption').value = chosen.enc;
+  document.getElementById('wifi-wps').value = chosen.wps;
+  document.getElementById('wifi-channel').value = chosen.ch;
+  document.getElementById('wifi-signal').value = chosen.sig;
+}
+
+async function runWifiAudit() {
+  const bssid = document.getElementById('wifi-bssid').value.trim();
+  const ssid = document.getElementById('wifi-ssid').value.trim();
+  const encryption = document.getElementById('wifi-encryption').value;
+  const wps = document.getElementById('wifi-wps').value;
+  const channel = document.getElementById('wifi-channel').value.trim();
+  const signal = document.getElementById('wifi-signal').value.trim();
+  const out = document.getElementById('wifi-results-box');
+
+  if (!bssid) {
+    toast('Veuillez renseigner une adresse MAC / BSSID', 'err');
+    return;
+  }
+
+  out.style.display = 'block';
+  out.innerHTML = '<div class="loading">Analyse spectrale et diagnostic des vulnérabilités sans-fil...</div>';
+
+  try {
+    const res = await api('/tools/wifi-audit', {
+      method: 'POST',
+      body: JSON.stringify({ bssid, ssid, encryption, wps, channel, signal })
+    });
+
+    if (!res || !res.success) {
+      out.innerHTML = `<div style="color:var(--ember)">Erreur lors du diagnostic: ${res ? res.error : 'Échec de connexion'}</div>`;
+      return;
+    }
+
+    const d = res.data;
+    const scoreColor = d.score >= 80 ? '#00ff66' : d.score >= 50 ? 'var(--warn)' : 'var(--ember)';
+
+    out.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #27272a;padding-bottom:8px;margin-bottom:10px">
+        <div>
+          <strong style="color:#00e5ff;font-size:0.95rem">📡 DIAGNOSTIC SÉCURITÉ : ${escapeHtmlVeille(d.ssid)}</strong>
+          <div style="color:var(--sub);font-size:0.75rem">BSSID: <span style="color:#fff">${escapeHtmlVeille(d.bssid)}</span> | OUI: <span style="color:var(--safe)">${escapeHtmlVeille(d.vendor)}</span></div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:1.1rem;font-weight:bold;color:${scoreColor}">${d.score}/100</div>
+          <span class="user-badge" style="background:${scoreColor}22;color:${scoreColor};border:1px solid ${scoreColor}">${d.risk_level}</span>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;margin-bottom:10px;font-size:0.75rem">
+        <div>🔒 <strong>Chiffrement :</strong> <span style="color:#fff">${escapeHtmlVeille(d.encryption)}</span></div>
+        <div>🔘 <strong>Statut WPS :</strong> <span style="color:${d.wps.includes('ACTIVÉ') ? 'var(--ember)' : '#00ff66'}">${escapeHtmlVeille(d.wps)}</span></div>
+        <div>📶 <strong>Canal :</strong> <span style="color:#fff">${escapeHtmlVeille(d.channel)}</span></div>
+        <div>📡 <strong>Puissance RSSI :</strong> <span style="color:#fff">${escapeHtmlVeille(d.signal)}</span></div>
+      </div>
+
+      <div style="margin-bottom:10px">
+        <strong style="color:var(--ember);font-size:0.78rem">⚠️ Vulnérabilités & Faiblesses Détectées :</strong>
+        <ul style="margin:4px 0 0 16px;padding:0;color:var(--sub);font-size:0.75rem">
+          ${d.vulnerabilities.map(v => `<li style="margin-bottom:2px">${escapeHtmlVeille(v)}</li>`).join('')}
+        </ul>
+      </div>
+
+      <div style="margin-bottom:10px">
+        <strong style="color:var(--safe);font-size:0.78rem">🛡️ Recommandations de Durcissement :</strong>
+        <ul style="margin:4px 0 0 16px;padding:0;color:var(--sub);font-size:0.75rem">
+          ${d.recommendations.map(r => `<li style="margin-bottom:2px">${escapeHtmlVeille(r)}</li>`).join('')}
+        </ul>
+      </div>
+
+      <div style="margin-top:12px;border-top:1px solid #27272a;padding-top:8px">
+        <strong style="color:#00e5ff;font-size:0.78rem">💻 Commandes CLI Recommandées (Kali / Linux / Windows) :</strong>
+        ${d.cli_commands.map(cmd => `
+          <div style="background:#000;border:1px solid #27272a;border-radius:4px;padding:6px 8px;margin-top:6px;display:flex;justify-content:space-between;align-items:center">
+            <pre style="margin:0;color:#00e5ff;font-size:0.72rem;white-space:pre-wrap;font-family:var(--fm)">${escapeHtmlVeille(cmd)}</pre>
+            <button class="btn sec sm" style="padding:2px 6px;font-size:0.7rem;margin-left:6px" onclick="copyCmd('${escapeAttrVeille(cmd.split('\\n').filter(l => !l.startsWith('#')).join(' ').trim())}', 'CLI')">📋</button>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  } catch (err) {
+    out.innerHTML = `<div style="color:var(--ember)">Erreur: ${err.message}</div>`;
+  }
 }
 
 // ══════════════════════════════════════════

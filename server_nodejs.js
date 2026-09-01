@@ -778,6 +778,112 @@ app.post('/api/tools/attack-lab', requireAuth, analysisLimiter,
   }
 );
 
+app.post('/api/tools/wifi-audit', requireAuth, analysisLimiter,
+  [
+    body('bssid').trim().isLength({ min: 5 }).withMessage('Format BSSID invalide'),
+    body('ssid').optional().trim(),
+    body('encryption').optional().trim(),
+    body('wps').optional(),
+    body('channel').optional(),
+    body('signal').optional()
+  ],
+  validate,
+  async (req, res) => {
+    const bssid = (req.body.bssid || '00:1A:2B:3C:4D:5E').toUpperCase().trim();
+    const ssid = (req.body.ssid || 'Wi-Fi-Cible').trim();
+    const enc = req.body.encryption || 'wpa2_aes';
+    const wps = req.body.wps === true || req.body.wps === 'true';
+    const channel = req.body.channel || '6';
+    const signal = req.body.signal || '-65 dBm';
+
+    // OUI Manufacturer Lookup
+    const VENDORS = {
+      '00:14:22': 'Dell Inc.', 'F0:9F:C2': 'Ubiquiti Networks', 'C0:25:E9': 'TP-Link Technologies',
+      '00:24:D7': 'Intel Corporate', 'AC:86:74': 'Cisco Systems / Meraki', 'DC:08:56': 'Sagemcom Broadband',
+      '00:1A:2B': 'Netgear Inc.', 'E0:63:DA': 'Apple Inc.', 'BC:99:11': 'Huawei Technologies',
+      '28:6C:07': 'Xiaomi Communications', '00:0C:29': 'VMware Inc.', 'B8:27:EB': 'Raspberry Pi Foundation',
+      '50:D4:F7': 'ASUSTeK Computer', 'D8:07:B6': 'D-Link International', '74:83:C2': 'Freebox SAS',
+      '34:8A:AE': 'Orange Livebox', 'F8:1A:67': 'SFR / Altice Box'
+    };
+
+    let vendor = 'Constructeur OUI Standard / Non répertorié';
+    for (const [k, v] of Object.entries(VENDORS)) {
+      if (bssid.startsWith(k)) { vendor = v; break; }
+    }
+
+    // Security Assessment & Vulnerability Analysis
+    let score = 85;
+    let riskLevel = 'FAIBLE';
+    let encDesc = 'WPA2-PSK (AES-CCMP) — Chiffrement standard';
+    const vulns = [];
+    const recommendations = [];
+
+    if (enc === 'open') {
+      score = 0;
+      riskLevel = 'CRITIQUE';
+      encDesc = 'Réseau Ouvert (Aucun chiffrement - Open)';
+      vulns.push('Trafic diffusé en clair sans isolation : interception passive des flux HTTP/DNS.', 'Exposé aux attaques Man-in-the-Middle (MitM) et Rogue Access Point.');
+      recommendations.push('Activer immédiatement WPA3-SAE ou WPA2-Enterprise (802.1X).', 'Configurer un portail captif avec chiffrement HTTPS et isolation des clients (AP Isolation).');
+    } else if (enc === 'wep') {
+      score = 10;
+      riskLevel = 'CRITIQUE';
+      encDesc = 'WEP 64/128-bit (RC4 - Obsolète et Déprécié)';
+      vulns.push('Vecteurs d\'initialisation (IV) faibles et réutilisation de clés RC4 (Attaques FMS/Korek/PTW).', 'Clé WEP reconstructible en quelques minutes par collecte passive de paquets ARP.');
+      recommendations.push('Migrer sans délai vers WPA3-Personal ou WPA2-AES.', 'Désactiver les anciens modes 802.11b hérités sur le routeur.');
+    } else if (enc === 'wpa_tkip') {
+      score = 35;
+      riskLevel = 'ÉLEVÉ';
+      encDesc = 'WPA (TKIP - Vulnérabilités structurelles)';
+      vulns.push('Faiblesses de contrôle d\'intégrité Michael MIC (Attaques Beck-Tews et Ohigashi-Morii).', 'Chiffrement déprécié par la Wi-Fi Alliance depuis 2012.');
+      recommendations.push('Remplacer le mode mixte TKIP par CCMP (AES) exclusif ou WPA3-SAE.');
+    } else if (enc === 'wpa2_aes') {
+      if (wps) {
+        score = 50;
+        riskLevel = 'MOYEN';
+        encDesc = 'WPA2-PSK (AES) avec fonction WPS active';
+        vulns.push('WPS exposé aux attaques par force brute de PIN et Pixie Dust (CVE-2014-4199).', 'Le 4-way handshake reste sensible au dictionnaire si la clé pré-partagée est courte (< 12 caractères).');
+        recommendations.push('Désactiver impérativement le WPS (Wi-Fi Protected Setup) dans l\'interface d\'administration.', 'Adopter une clé de plus de 16 caractères aléatoires (haute entropie).', 'Activer les trames de gestion protégées (802.11w PMF).');
+      } else {
+        score = 85;
+        riskLevel = 'BON';
+        encDesc = 'WPA2-PSK (AES-CCMP) — Configuration standard robuste';
+        vulns.push('Exposition aux attaques par dictionnaire hors-ligne si la clé pré-partagée est basée sur un mot du dictionnaire.');
+        recommendations.push('Utiliser une clé aléatoire complexe de plus de 16 caractères.', 'Planifier la migration vers WPA3-SAE pour bénéficier du secret parfait vers l\'avant (PFS).');
+      }
+    } else if (enc === 'wpa3_sae') {
+      score = 98;
+      riskLevel = 'EXCELLENT';
+      encDesc = 'WPA3-Personal (Protocole SAE Dragonfly + 802.11w PMF)';
+      vulns.push('Aucune faiblesse structurelle de handshake ; protection intégrée contre le cracking de mot de passe hors-ligne.');
+      recommendations.push('Vérifier que les trames de gestion protégées (PMF) sont configurées en mode Obligatoire (Required).', 'Maintenir le firmware de la borne d\'accès à jour.');
+    }
+
+    res.json({
+      success: true,
+      data: {
+        ssid,
+        bssid,
+        vendor,
+        channel,
+        signal,
+        encryption: encDesc,
+        wps: wps ? 'ACTIVÉ (VULNÉRABILITÉ WPS PIN / Pixie Dust)' : 'DÉSACTIVÉ (Sécurisé)',
+        score,
+        risk_level: riskLevel,
+        vulnerabilities: vulns,
+        recommendations,
+        cli_commands: [
+          `# 1. Énumération des réseaux sans-fil (Linux/Kali)\nnmcli dev wifi list`,
+          `# 2. Diagnostic des paramètres BSSID sous Windows\nnetsh wlan show networks mode=bssid`,
+          `# 3. Capture diagnostique ciblée sur le BSSID (Kali Linux)\nsudo airodump-ng --bssid ${bssid} -c ${channel} -w audit_${ssid.replace(/[^a-zA-Z0-9]/g, '_')} wlan0mon`,
+          `# 4. Vérification de la vulnérabilité WPS (Pixie Dust)\nsudo wash -i wlan0mon -b ${bssid}`
+        ],
+        timestamp: new Date().toISOString()
+      }
+    });
+  }
+);
+
 app.post('/api/tools/detect-tech', requireAuth, analysisLimiter,
   [body('url').trim().isLength({ min: 4 })],
   validate,
