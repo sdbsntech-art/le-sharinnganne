@@ -9,16 +9,62 @@ CREATE TABLE IF NOT EXISTS public.users (
   is_admin      BOOLEAN DEFAULT FALSE,
   active        BOOLEAN DEFAULT TRUE,
   joined        TIMESTAMPTZ DEFAULT NOW(),
-  updated_at    TIMESTAMPTZ DEFAULT NOW()
+  updated_at    TIMESTAMPTZ DEFAULT NOW(),
+  display_name  TEXT,
+  avatar_url    TEXT,
+  online_status BOOLEAN DEFAULT FALSE,
+  last_seen     TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS public.messages (
+  id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  channel_key   TEXT NOT NULL,
+  sender        TEXT NOT NULL,
+  sender_name   TEXT,
+  content       TEXT NOT NULL,
+  msg_type      TEXT DEFAULT 'text',
+  read_by       TEXT[] DEFAULT '{}',
+  delivered_at  TIMESTAMPTZ,
+  read_at       TIMESTAMPTZ,
+  created_at    TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Chiffrement E2E / clés publiques pour messagerie
+CREATE TABLE IF NOT EXISTS public.channel_members (
+  id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  channel_key TEXT NOT NULL,
+  email       TEXT NOT NULL,
+  joined_at   TIMESTAMPTZ DEFAULT NOW(),
+  last_read   TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE (channel_key, email)
+);
+
+-- Générateur de lien tracker IP (lien à partager)
+CREATE TABLE IF NOT EXISTS public.ip_trackers (
+  id         UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  code       TEXT UNIQUE NOT NULL,
+  owner      TEXT NOT NULL,
+  label      TEXT,
+  token      TEXT NOT NULL,
+  hits       INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.ip_tracker_hits (
   id           UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  channel_key  TEXT NOT NULL,
-  sender       TEXT NOT NULL,
-  content      TEXT NOT NULL,
-  msg_type     TEXT DEFAULT 'text',
-  created_at   TIMESTAMPTZ DEFAULT NOW()
+  code         TEXT NOT NULL,
+  ip           TEXT,
+  user_agent   TEXT,
+  referer      TEXT,
+  country      TEXT,
+  country_code TEXT,
+  region       TEXT,
+  city         TEXT,
+  lat          DOUBLE PRECISION,
+  lon          DOUBLE PRECISION,
+  timezone     TEXT,
+  isp          TEXT,
+  captured_at  TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS public.analysis_logs (
@@ -68,8 +114,20 @@ ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.analysis_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.threats ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.channel_members ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ip_trackers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ip_tracker_hits ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "allow_all_users" ON public.users FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "allow_all_messages" ON public.messages FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "allow_all_logs" ON public.analysis_logs FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "allow_all_threats" ON public.threats FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "allow_all_channel_members" ON public.channel_members FOR ALL USING (true) WITH CHECK (true);
+
+-- Tracker via le backend uniquement (RLS restreinte)
+CREATE POLICY "trackers_owner_all" ON public.ip_trackers FOR ALL USING (owner = auth.jwt() ->> 'email' OR auth.jwt() ->> 'is_admin' = 'true') WITH CHECK (owner = auth.jwt() ->> 'email');
+CREATE POLICY "hits_all_backend" ON public.ip_tracker_hits FOR SELECT USING (true);
+
+-- Activer Realtime pour la messagerie temps réel (WhatsApp style)
+ALTER PUBLICATION supabase_realtime ADD TABLE public.messages;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.users;

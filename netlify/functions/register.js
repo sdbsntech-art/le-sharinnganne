@@ -13,7 +13,6 @@ exports.handler = async (event) => {
   try {
     const { email, password, accept_terms } = JSON.parse(event.body);
 
-    // Validation manuelle simple
     if (!email || !email.includes('@')) {
       return { statusCode: 400, body: JSON.stringify({ error: 'Email invalide' }) };
     }
@@ -24,7 +23,6 @@ exports.handler = async (event) => {
       return { statusCode: 400, body: JSON.stringify({ error: 'Vous devez accepter les conditions' }) };
     }
 
-    // Vérifier si l'utilisateur existe
     const { data: existing } = await supabase
       .from('users').select('id').eq('email', email).single();
     

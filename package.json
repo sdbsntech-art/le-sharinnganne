@@ -2,10 +2,10 @@
   "name": "sharinnganne-backend",
   "version": "3.0.0",
   "description": "SHARINNGANNE — Backend Node.js sécurisé",
-  "main": "server.js",
+  "main": "server_nodejs.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js",
+    "start": "node server_nodejs.js",
+    "dev": "nodemon server_nodejs.js",
     "test": "echo \"Tests à implémenter\" && exit 0"
   },
   "dependencies": {

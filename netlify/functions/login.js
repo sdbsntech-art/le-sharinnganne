@@ -22,13 +22,11 @@ exports.handler = async (event) => {
       return { statusCode: 403, body: JSON.stringify({ error: 'Compte suspendu' }) };
     }
 
-    // Vérification du mot de passe (gestion hash vs clair)
     let match = false;
     if (user.password_hash && user.password_hash.startsWith('$2')) {
       match = await bcrypt.compare(password, user.password_hash);
     } else {
       match = password === user.password_hash;
-      // Migration automatique vers hash si match en clair
       if (match) {
         const newHash = await bcrypt.hash(password, 12);
         await supabase.from('users').update({ password_hash: newHash }).eq('email', email);

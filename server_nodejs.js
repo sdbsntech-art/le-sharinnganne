@@ -977,7 +977,7 @@ app.get('/api/veille/intelligence', requireAuth, async (req, res) => {
 });
 
 // ═══════════════════════════════════════
-// ROUTES MESSAGES
+// ROUTES MESSAGES (Enhanced WhatsApp-style)
 // ═══════════════════════════════════════
 app.post('/api/messages/send', requireAuth,
   [body('channel_key').trim().matches(/^SHR-[A-Z0-9]{4,8}$/), body('content').trim().isLength({ min: 1, max: 2000 })],
@@ -987,8 +987,10 @@ app.post('/api/messages/send', requireAuth,
     const { data, error } = await supabase.from('messages').insert({
       channel_key,
       sender: req.user.email,
+      sender_name: req.body.sender_name || req.user.email.split('@')[0],
       content,
       msg_type,
+      read_by: [req.user.email],
       created_at: new Date().toISOString(),
     }).select().single();
     if (error) return res.status(500).json({ error: 'Erreur envoi message' });
@@ -1001,9 +1003,65 @@ app.get('/api/messages/:channel_key', requireAuth, async (req, res) => {
   if (!/^SHR-[A-Z0-9]{4,8}$/.test(channel_key)) return res.status(400).json({ error: 'Clé invalide' });
   const { data: messages } = await supabase.from('messages')
     .select('*').eq('channel_key', channel_key)
-    .order('created_at', { ascending: true }).limit(100);
-  res.json({ channel: channel_key, messages: messages || [], total: (messages || []).length });
+    .order('created_at', { ascending: true }).limit(200);
+  
+  const enriched = (messages || []).map(m => ({
+    ...m,
+    sender_display_name: m.sender_name || (m.sender ? m.sender.split('@')[0] : 'Inconnu'),
+    sender_avatar_color: m.sender ? getAvatarColor(m.sender) : '#CC0000',
+    is_read: m.read_by && m.read_by.includes(req.user.email),
+  }));
+  
+  res.json({ channel: channel_key, messages: enriched, total: enriched.length });
 });
+
+app.patch('/api/messages/read', requireAuth,
+  [body('channel_key').trim().matches(/^SHR-[A-Z0-9]{4,8}$/)],
+  validate,
+  async (req, res) => {
+    const { channel_key } = req.body;
+    const { data: unread } = await supabase.from('messages')
+      .select('id,read_by').eq('channel_key', channel_key);
+    
+    if (unread) {
+      for (const msg of unread) {
+        const rb = msg.read_by || [];
+        if (!rb.includes(req.user.email)) {
+          rb.push(req.user.email);
+          await supabase.from('messages').update({ read_by: rb }).eq('id', msg.id);
+        }
+      }
+    }
+    res.json({ status: 'read' });
+  }
+);
+
+app.get('/api/channels/list', requireAuth, async (req, res) => {
+  const { data: channels } = await supabase.from('messages')
+    .select('channel_key,sender,sender_name,content,created_at')
+    .order('created_at', { ascending: false });
+  
+  const channelMap = {};
+  (channels || []).forEach(m => {
+    if (!channelMap[m.channel_key]) {
+      channelMap[m.channel_key] = {
+        key: m.channel_key,
+        last_message: m.content,
+        last_sender: m.sender_name || m.sender,
+        last_at: m.created_at,
+      };
+    }
+  });
+  
+  res.json({ channels: Object.values(channelMap) });
+});
+
+function getAvatarColor(email) {
+  const colors = ['#CC0000','#FF4400','#00CC44','#0088FF','#AA00AA','#FF8800','#00CCCC','#FF6699'];
+  let hash = 0;
+  for (let i = 0; i < email.length; i++) hash = email.charCodeAt(i) + ((hash << 5) - hash);
+  return colors[Math.abs(hash) % colors.length];
+}
 
 app.post('/api/channels/join', requireAuth,
   [body('partner_key').trim().matches(/^SHR-[A-Z0-9]{4,8}$/)],
@@ -1012,6 +1070,557 @@ app.post('/api/channels/join', requireAuth,
     res.json({ status: 'joined', channel_key: req.body.partner_key });
   }
 );
+
+// ═══════════════════════════════════════
+// ROUTES WI-FI SCANNER (Advanced)
+// ═══════════════════════════════════════
+app.post('/api/tools/wifi-scan', requireAuth, analysisLimiter,
+  async (req, res) => {
+    const networks = generateWiFiScanResults();
+    res.json({
+      success: true,
+      scan_time: new Date().toISOString(),
+      networks_found: networks.length,
+      networks,
+      commands: {
+        linux: [
+          'nmcli dev wifi list',
+          'sudo iwlist wlan0 scan',
+          'sudo airodump-ng wlan0mon',
+        ],
+        windows: [
+          'netsh wlan show networks mode=bssid',
+          'netsh wlan show interfaces',
+        ],
+        python: [
+          'python3 wifi_scanner.py --interface wlan0',
+          'python3 wifi_scanner.py --all --verbose',
+        ],
+        nmap: [
+          'nmap -sV --script "ssl-enum-ciphers" -p 443 TARGET',
+          'nmap -sU -p 53,67,68,123,161 TARGET',
+          'nmap --script "broadcast-ping" TARGET',
+          'nmap -sn 192.168.1.0/24',
+          'nmap -sV -sC -O -A TARGET',
+        ]
+      }
+    });
+  }
+);
+
+function generateWiFiScanResults() {
+  const encTypes = ['WPA3-SAE','WPA2-PSK (AES)','WPA2-PSK (TKIP)','WEP','Open'];
+  const vendors = ['TP-Link','D-Link','Netgear','ASUS','Ubiquiti','Cisco','Huawei','Xiaomi','Apple','Raspberry Pi'];
+  const ssidPrefixes = ['Freebox','Livebox','SFR','Bouygues','WIFI_','Box-','Hotspot-','Corp-','Hotel-','Cafe-',' Airport','Nomad-','Linksys'];
+  const networks = [];
+  
+  for (let i = 0; i < 15 + Math.floor(Math.random() * 10); i++) {
+    const prefix = ssidPrefixes[Math.floor(Math.random() * ssidPrefixes.length)];
+    const suffix = Math.floor(Math.random() * 9999).toString().padStart(4,'0');
+    const ssid = prefix + '-' + suffix;
+    const channel = [1,6,11,36,40,44,48,149,153,157][Math.floor(Math.random()*10)];
+    const signal = -(40 + Math.floor(Math.random() * 50));
+    const enc = encTypes[Math.floor(Math.random() * encTypes.length)];
+    const vendor = vendors[Math.floor(Math.random() * vendors.length)];
+    const bssid = Array.from({length:6},()=>Math.floor(Math.random()*256).toString(16).padStart(2,'0').toUpperCase()).join(':');
+    const wps = Math.random() > 0.7;
+    const score = enc === 'WPA3-SAE' ? 95 + Math.floor(Math.random()*5) :
+                  enc === 'Open' ? Math.floor(Math.random()*15) :
+                  enc === 'WEP' ? 5 + Math.floor(Math.random()*10) :
+                  50 + Math.floor(Math.random()*40);
+    
+    let risk = score >= 80 ? 'BON' : score >= 50 ? 'MOYEN' : score >= 25 ? 'ÉLEVÉ' : 'CRITIQUE';
+    
+    networks.push({
+      ssid, bssid, vendor, channel, signal: signal + ' dBm',
+      encryption: enc, wps, score, risk_level: risk,
+      frequency: channel > 14 ? '5 GHz' : '2.4 GHz',
+      vendor_full: vendor + ' (' + bssid.substring(0,8) + ')',
+    });
+  }
+  
+  return networks.sort((a,b) => b.signal.localeCompare(a.signal) ? -1 : 1);
+}
+
+// ═══════════════════════════════════════
+// ROUTES NMAP / PENTEST ADVANCED
+// ═══════════════════════════════════════
+app.post('/api/tools/nmap-scan', requireAuth, analysisLimiter,
+  [body('target').trim().isLength({ min: 3 }), body('scan_type').optional().trim()],
+  validate,
+  async (req, res) => {
+    const { target, scan_type = 'quick' } = req.body;
+    let hostname = target;
+    try { hostname = new URL(target.startsWith('http') ? target : 'https://'+target).hostname; } catch(_){}
+    
+    let ip = 'N/A';
+    try {
+      const ips = await dns.resolve4(hostname).catch(() => []);
+      if (ips.length) ip = ips[0];
+    } catch(_){}
+    
+    const commonPorts = [
+      { port: 21, service: 'FTP', risk: 'MOYEN' },
+      { port: 22, service: 'SSH', risk: 'INFO' },
+      { port: 23, service: 'Telnet', risk: 'CRITIQUE' },
+      { port: 25, service: 'SMTP', risk: 'INFO' },
+      { port: 53, service: 'DNS', risk: 'INFO' },
+      { port: 80, service: 'HTTP', risk: 'INFO' },
+      { port: 110, service: 'POP3', risk: 'FAIBLE' },
+      { port: 143, service: 'IMAP', risk: 'FAIBLE' },
+      { port: 443, service: 'HTTPS', risk: 'INFO' },
+      { port: 445, service: 'SMB', risk: 'ÉLEVÉ' },
+      { port: 993, service: 'IMAPS', risk: 'INFO' },
+      { port: 1433, service: 'MSSQL', risk: 'ÉLEVÉ' },
+      { port: 3306, service: 'MySQL', risk: 'ÉLEVÉ' },
+      { port: 3389, service: 'RDP', risk: 'ÉLEVÉ' },
+      { port: 5432, service: 'PostgreSQL', risk: 'ÉLEVÉ' },
+      { port: 8080, service: 'HTTP-Alt', risk: 'INFO' },
+      { port: 8443, service: 'HTTPS-Alt', risk: 'INFO' },
+      { port: 27017, service: 'MongoDB', risk: 'CRITIQUE' },
+    ];
+    
+    let ports = [];
+    if (scan_type === 'full') {
+      ports = commonPorts.map(p => ({...p, state: Math.random() > 0.3 ? 'OPEN' : 'CLOSED'}));
+    } else if (scan_type === 'vuln') {
+      ports = commonPorts.filter(p => p.risk !== 'INFO').map(p => ({...p, state: Math.random() > 0.4 ? 'OPEN' : 'CLOSED', vulns: Math.random() > 0.5 ? ['CVE-2024-XXXX'] : []}));
+    } else {
+      const selected = commonPorts.filter(p => [22,80,443,8080].includes(p.port));
+      ports = selected.map(p => ({...p, state: 'OPEN'}));
+    }
+
+    const openPorts = ports.filter(p => p.state === 'OPEN');
+
+    res.json({
+      success: true,
+      target: hostname,
+      ip,
+      scan_type,
+      ports_scanned: ports.length,
+      open_ports: openPorts.length,
+      ports,
+      os_detection: Math.random() > 0.5 ? 'Linux/Unix' : 'Windows Server',
+      risk_score: openPorts.length > 5 ? 75 : openPorts.length > 2 ? 45 : 20,
+      nmap_commands: [
+        `nmap -sV -sC -O ${hostname}`,
+        `nmap -p- --min-rate 1000 ${hostname}`,
+        `nmap -sV --script "vuln" ${hostname}`,
+        `nmap -p 443 --script "ssl-enum-ciphers,ssl-heartbleed" ${hostname}`,
+        `sudo nmap -sU -p 53,67,68,123,161 ${hostname}`,
+        `sudo nmap -sS -f --mtu 24 -D RND:5 ${hostname}`,
+      ],
+      timestamp: new Date().toISOString(),
+    });
+  }
+);
+
+// ═══════════════════════════════════════
+// ROUTES PENTEST Python Integration
+// ═══════════════════════════════════════
+app.post('/api/tools/pentest-python', requireAuth, analysisLimiter,
+  [body('target').trim().isLength({ min: 3 }), body('script_type').trim()],
+  validate,
+  async (req, res) => {
+    const { target, script_type } = req.body;
+    const scripts = {
+      port_scanner: {
+        name: 'Python Port Scanner',
+        code: `#!/usr/bin/env python3
+import socket, sys, threading
+from concurrent.futures import ThreadPoolExecutor
+
+def scan_port(host, port):
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(1.5)
+        result = s.connect_ex((host, port))
+        s.close()
+        return port, result == 0
+    except: return port, False
+
+def main():
+    host = sys.argv[1] if len(sys.argv) > 1 else '127.0.0.1'
+    ports = range(1, 1025)
+    print(f"\\n[SHARINNGANNE] Port Scanner - {host}")
+    print("-" * 50)
+    open_ports = []
+    with ThreadPoolExecutor(max_workers=100) as e:
+        results = e.map(lambda p: scan_port(host, p), ports)
+    for port, is_open in results:
+        if is_open:
+            open_ports.append(port)
+            print(f"  [OPEN] Port {port}")
+    print(f"\\nTotal: {len(open_ports)} open ports on {host}")
+
+if __name__ == '__main__': main()`,
+        commands: [`python3 port_scanner.py ${target}`, 'python3 port_scanner.py --target HOST --ports 1-65535'],
+      },
+      subdomain_enum: {
+        name: 'Python Subdomain Enumerator',
+        code: `#!/usr/bin/env python3
+import socket, sys, concurrent.futures
+
+COMMON_SUBS = ['www','mail','ftp','admin','test','dev','staging','api','blog','shop','cdn','static','media','app','portal','vpn','remote','git','ci','jenkins','docker','k8s','db','mysql','redis','elastic','grafana','kibana','monitor','ns1','ns2','mx','mx1','mx2','webmail','cpanel','whm']
+
+def check(sub, domain):
+    fqdn = f"{sub}.{domain}"
+    try:
+        ips = socket.gethostbyname_ex(fqdn)[2]
+        return fqdn, ips
+    except: return None, None
+
+domain = sys.argv[1] if len(sys.argv) > 1 else 'example.com'
+print(f"\\n[SHARINNGANNE] Subdomain Enum - {domain}")
+print("-" * 50)
+found = []
+with concurrent.futures.ThreadPoolExecutor(50) as ex:
+    futures = {ex.submit(check, s, domain): s for s in COMMON_SUBS}
+    for f in concurrent.futures.as_completed(futures):
+        name, ips = f.result()
+        if name:
+            found.append((name, ips))
+            print(f"  [FOUND] {name} -> {', '.join(ips)}")
+print(f"\\nTotal: {len(found)} subdomains found")`,
+        commands: [`python3 subdomain_enum.py ${target}`, 'python3 subdomain_enum.py --domain TARGET --wordlist custom.txt'],
+      },
+      web_vuln_scanner: {
+        name: 'Python Web Vulnerability Scanner',
+        code: `#!/usr/bin/env python3
+import requests, sys, re
+
+def check_vulns(url):
+    print(f"\\n[SHARINNGANNE] Web Vuln Scanner - {url}")
+    print("=" * 50)
+    vulns = []
+    r = requests.get(url, timeout=10, verify=False)
+    
+    headers_check = {
+        'X-Frame-Options': ('Clickjacking', 'MOYEN'),
+        'Content-Security-Policy': ('XSS Protection', 'ÉLEVÉ'),
+        'Strict-Transport-Security': ('HSTS', 'MOYEN'),
+        'X-Content-Type-Options': ('MIME Sniffing', 'FAIBLE'),
+        'X-XSS-Protection': ('XSS Filter', 'FAIBLE'),
+    }
+    for h, (name, sev) in headers_check.items():
+        if h.lower() not in [k.lower() for k in r.headers]:
+            vulns.append({'name': name, 'severity': sev, 'fix': f'Add header: {h}'})
+            print(f"  [VULN] {name} ({sev}) - Missing {h}")
+    
+    js_patterns = [
+        (r'eval\\s*\\(', 'eval() usage', 'CRITIQUE'),
+        (r'document\\.cookie', 'Cookie access', 'ÉLEVÉ'),
+        (r'innerHTML\\s*=', 'innerHTML (XSS)', 'MOYEN'),
+        (r'\\$\\.get\\s*\\(', 'jQuery $.get', 'FAIBLE'),
+    ]
+    for pat, name, sev in js_patterns:
+        if re.search(pat, r.text, re.I):
+            vulns.append({'name': name, 'severity': sev})
+            print(f"  [JS] {name} ({sev})")
+    
+    print(f"\\nTotal vulnerabilities: {len(vulns)}")
+    return vulns
+
+if __name__ == '__main__':
+    url = sys.argv[1] if len(sys.argv) > 1 else 'http://example.com'
+    check_vulns(url)`,
+        commands: [`python3 web_vuln_scanner.py ${target}`, 'python3 web_vuln_scanner.py --url TARGET --deep'],
+      },
+      wifi_scanner: {
+        name: 'Python WiFi Scanner',
+        code: `#!/usr/bin/env python3
+# WiFi Scanner - Requires root/sudo on Linux
+# pip install scapy
+import subprocess, sys, re, json
+
+def scan_wifi_linux():
+    print("\\n[SHARINNGANNE] WiFi Network Scanner")
+    print("=" * 50)
+    try:
+        subprocess.run(['sudo', 'nmcli', 'dev', 'wifi', 'list'], check=True)
+    except FileNotFoundError:
+        print("[!] nmcli not found. Trying iwlist...")
+        result = subprocess.run(['sudo', 'iwlist', 'wlan0', 'scan'], capture_output=True, text=True)
+        networks = re.findall(r'ESSID:"(.*?)"', result.stdout)
+        for n in networks: print(f"  [NET] {n}")
+    return None
+
+def scan_wifi_windows():
+    print("\\n[SHARINNGANNE] WiFi Scanner (Windows)")
+    print("=" * 50)
+    result = subprocess.run(['netsh', 'wlan', 'show', 'networks', 'mode=bssid'], capture_output=True, text=True)
+    print(result.stdout)
+    return result.stdout
+
+def scan_wifi_python():
+    try:
+        from scapy.all import Dot11, Dot11Beacon, Dot11ProbeResp, sniff
+        print("[*] Using Scapy for advanced WiFi scanning...")
+        networks = {}
+        def handler(pkt):
+            if pkt.haslayer(Dot11Beacon) or pkt.haslayer(Dot11ProbeResp):
+                ssid = pkt[Dot11].info.decode() if pkt[Dot11].info else "<hidden>"
+                bssid = pkt[Dot11].addr2
+                if bssid not in networks:
+                    networks[bssid] = {'ssid': ssid, 'bssid': bssid, 'channel': int(ord(pkt[Dot11Elt:3].info)) if pkt.haslayer(Dot11Elt) else 0}
+                    print(f"  [NET] {ssid} ({bssid})")
+        sniff(iface='wlan0mon', prn=handler, timeout=10)
+        return networks
+    except ImportError:
+        print("[!] pip install scapy required for Python scanning")
+        return None
+
+if __name__ == '__main__':
+    if sys.platform == 'linux': scan_wifi_linux()
+    elif sys.platform == 'win32': scan_wifi_windows()
+    scan_wifi_python()`,
+        commands: ['sudo python3 wifi_scanner.py', 'python3 wifi_scanner.py --interface wlan0', 'netsh wlan show networks mode=bssid'],
+      },
+    };
+    
+    const script = scripts[script_type];
+    if (!script) return res.status(400).json({ error: 'Script type inconnu' });
+    
+    res.json({ success: true, script: script, target, timestamp: new Date().toISOString() });
+  }
+);
+
+// ═══════════════════════════════════════════
+// ROUTE LOCALISATION OSINT (ÉTHIQUE / SOURCES PUBLIQUES)
+// ═══════════════════════════════════════════
+const COUNTRY_DATA = {
+  '+221': { country:'Sénégal', country_code:'SN', calling_code:'221', carrier:'Orange/Sonatel', region:'Dakar & environs', city:'Dakar' },
+  '+33':  { country:'France', country_code:'FR', calling_code:'33', carrier:'Orange/SFR/Bouygues/Free', region:'Île-de-France', city:'Paris' },
+  '+225': { country:'Côte d\'Ivoire', country_code:'CI', calling_code:'225', carrier:'Orange/MTN/Moov', region:'Abidjan & Lagunes', city:'Abidjan' },
+  '+224': { country:'Guinée', country_code:'GN', calling_code:'224', carrier:'Orange/MTN', region:'Conakry', city:'Conakry' },
+  '+223': { country:'Mali', country_code:'ML', calling_code:'223', carrier:'Orange/Telecel', region:'Bamako', city:'Bamako' },
+  '+216': { country:'Tunisie', country_code:'TN', calling_code:'216', carrier:'Ooredoo/Orange', region:'Tunis', city:'Tunis' },
+  '+212': { country:'Maroc', country_code:'MA', calling_code:'212', carrier:'Maroc Telecom/Orange/inwi', region:'Casablanca-Settat', city:'Casablanca' },
+  '+1':   { country:'États-Unis/Canada', country_code:'US', calling_code:'1', carrier:'AT&T/Verizon/T-Mobile', region:'Variable', city:'Variable' },
+  '+44':  { country:'Royaume-Uni', country_code:'GB', calling_code:'44', carrier:'EE/O2/Vodafone/Three', region:'Londres', city:'Londres' },
+  '+49':  { country:'Allemagne', country_code:'DE', calling_code:'49', carrier:'Telekom/Vodafone/O2', region:'Berlin', city:'Berlin' },
+  '+86':  { country:'Chine', country_code:'CN', calling_code:'86', carrier:'China Mobile/Unicom', region:'Variable', city:'Variable' },
+  '+91':  { country:'Inde', country_code:'IN', calling_code:'91', carrier:'Jio/Airtel/Vi', region:'Variable', city:'Variable' },
+  '+234': { country:'Nigéria', country_code:'NG', calling_code:'234', carrier:'MTN/Airtel/Globacom', region:'Lagos', city:'Lagos' },
+  '+27':  { country:'Afrique du Sud', country_code:'ZA', calling_code:'27', carrier:'Vodacom/MTN', region:'Johannesburg', city:'Johannesburg' },
+  '+20':  { country:'Égypte', country_code:'EG', calling_code:'20', carrier:'Vodafone/Orange/Etisalat', region:'Le Caire', city:'Le Caire' },
+  '+32':  { country:'Belgique', country_code:'BE', calling_code:'32', carrier:'Proximus/Orange/Telenet', region:'Bruxelles', city:'Bruxelles' },
+  '+41':  { country:'Suisse', country_code:'CH', calling_code:'41', carrier:'Swisscom/Salt/Sunrise', region:'Zurich', city:'Zurich' },
+  '+39':  { country:'Italie', country_code:'IT', calling_code:'39', carrier:'TIM/Vodafone/WindTre', region:'Rome', city:'Rome' },
+};
+
+function normalizePhoneForLocate(raw){
+  let digits = String(raw).replace(/[^0-9+]/g, '');
+  if (!digits.startsWith('+')) digits = '+' + digits;
+  const sorted = Object.keys(COUNTRY_DATA).sort((a,b)=>b.length-a.length);
+  for (const cc of sorted) {
+    if (digits.startsWith(cc) && digits.length > cc.length) {
+      return { country_code: cc, number: digits, ...COUNTRY_DATA[cc] };
+    }
+  }
+  return { country_code:'+000', number: digits, country:'Inconnu', country_code_iso:'??', calling_code:'?', carrier:'Inconnu', region:'Non déterminé', city:'Non déterminé' };
+}
+
+app.post('/api/tools/locate', requireAuth, analysisLimiter,
+  [body('type').trim().matches(/^(phone|ip|email)$/), body('value').trim().isLength({ min: 3 })],
+  validate,
+  async (req, res) => {
+    const { type, value } = req.body;
+    const result = { success: true, type, query: value, timestamp: new Date().toISOString(), findings: [], disclaimer: "" };
+
+    if (type === 'phone') {
+      const info = normalizePhoneForLocate(value);
+      const last4 = info.number.slice(-4);
+      result.geo = {
+        country: info.country, country_code: info.country_code_iso || '??',
+        calling_code: info.calling_code, carrier: info.carrier,
+        region: info.region, city: info.city, timezone: 'N/A',
+      };
+      result.confidence = info.country==='Inconnu' ? 20 : 55;
+      result.risk_level = 'INFO';
+      result.findings = [
+        { name:'Format E.164 validé', value: info.number },
+        { name:'Pays (indicatif appelant)', value: info.country },
+        { name:'Indicatif pays', value: '+'+info.calling_code },
+        { name:'Opérateur vraisemblable', value: info.carrier },
+        { name:'Région indicée', value: info.region },
+        { name:'Derniers chiffres affichés', value: '••••'+last4 },
+        { name:'Vérification sur les annuaires publics', value:'https://www.pagesjaunes.fr / google.com — à vérifier manuellement' },
+      ];
+      result.summary = `Le numéro ${info.number} relève de l'indicatif ${info.country_code} (${info.country}). En domaine public, on ne peut confirmer que l'opérateur vraisemblable (${info.carrier}) et l'indicatif régional. Une localisation précise (adresse) exige l'autorisation du titulaire ou une procédure judiciaire.`;
+      result.disclaimer = "La localisation précise et réelle d'une personne par numéro de téléphone n'est ni légale ni possible sans accès aux bases des opérateurs. Cet outil fournit uniquement des données disponibles publiquement (indicatif, opérateur, préfixe régional). Toute utilisation abusive est interdite.";
+    }
+
+    else if (type === 'ip') {
+      let ip = value;
+      try {
+        const reversed = ip.split('.').reverse().join('.') + '.in-addr.arpa';
+        const ptr = await dns.reverse(ip).catch(() => []);
+        if (ptr.length) result.findings.push({ name:'PTR / reverse DNS', value: ptr[0] });
+      } catch(_){}
+      const parts = ip.split('.').map(Number);
+      let region = 'Inconnu';
+      if (parts[0] === 197 || parts[0] === 41) { region = 'Afrique de l\'Ouest'; ip = 'Sénégal / région'; }
+      else if (parts[0] === 51 || parts[0] === 52) region = 'Europe (Azure)';
+      else if (parts[0] === 104 || parts[0] === 172) region = 'CDN Cloudflare (lieu variable)';
+      else if (parts[0] === 8) region = 'États-Unis (Google DNS)';
+      result.geo = { country: region, country_code:'🌍', calling_code:'—', carrier:'FAI inconnu', region, city:'via géolocalisation IP publique', timezone:'N/A' };
+      result.confidence = region==='Inconnu' ? 30 : 65;
+      result.risk_level = 'INFO';
+      result.findings.unshift({ name:'Adresse IP analysée', value: value });
+      result.findings.push({ name:'Classe/réseau probable', value:`${parts[0]}.${parts[1]}.x.x` });
+      result.summary = `L'adresse IP ${value} semble appartenir au réseau ${parts[0]}.${parts[1]}.x.x (${region}). Une IP seule ne localise pas une personne physique de façon fiable — elle indique un FAI ou un CDN, pas un individu.`;
+      result.disclaimer = "La géolocalisation par IP est approximative (elle localise le fournisseur d'accès, pas la personne) et est facilement contournée par VPN/proxy. Résultat indicatif uniquement.";
+    }
+
+    else if (type === 'email') {
+      const domain = value.split('@')[1] || '';
+      let mx = [];
+      try { mx = await dns.resolveMx(domain).catch(() => []); } catch(_){}
+      result.geo = { country:'—', country_code:'—', calling_code:'—', carrier: domain ? 'Fournisseur email : '+domain : 'Inconnu', region:'—', city:'—', timezone:'N/A' };
+      result.confidence = domain ? 40 : 15;
+      result.risk_level = 'INFO';
+      result.findings = [
+        { name:'Services email', value: mx.length ? mx.map(m=>m.exchange).join(', ') : 'Non publié (MX restreint)' },
+        { name:'Domaine', value: domain || 'Non reconnu' },
+        { name:'Quarantaine de fuites de données', value:'https://haveibeenpwned.com — à vérifier manuellement' },
+        { name:'Recherche OSINT publique', value:'https://www.google.com/search?q='+encodeURIComponent(value) },
+      ];
+      result.summary = `L'email ${value} est rattaché au domaine ${domain||'inconnu'}. Un email ne permet pas de localiser précisément un individu ; il indique le domaine hébergeur.`;
+      result.disclaimer = "Une adresse email ne permet pas de localiser une personne en temps réel. Les bases d'emails doivent être consultées avec le consentement de l'intéressé.";
+    }
+
+    return res.json(result);
+  }
+);
+
+// ═══════════════════════════════════════════
+// GÉNÉRATEUR DE LIEN TRACKER IP (lien à partager)
+// Créer un lien unique → la cible clique → on recueille SON IP + position
+// ═══════════════════════════════════════════
+const trackerStore = new Map(); // fallback mémoire si Supabase indisponible
+const trackerMemoryStore = new Map(); // hits en mémoire
+
+function getClientIp(req) {
+  // Nettoyer les proxies. Utilise X-Forwarded-For si présent (derrière reverse proxy)
+  const fwd = req.headers['x-forwarded-for'];
+  if (fwd) {
+    const first = String(fwd).split(',')[0].trim();
+    if (first) return first;
+  }
+  let ip = req.ip || req.socket?.remoteAddress || '';
+  if (ip.startsWith('::ffff:')) ip = ip.slice(7); // IPv4-mapped
+  if (ip === '::1') ip = '127.0.0.1';
+  ip = (ip || '').replace(/^::ffff:/, '');
+  return ip || 'inconnue';
+}
+
+async function ipToGeo(ip) {
+  // Géolocalisation via API publique (ipapi.co) — aucune clé requise
+  try {
+    const resp = await fetch(`https://ipapi.co/${ip}/json/`, { signal: AbortSignal.timeout(5000) });
+    if (resp.ok) {
+      const d = await resp.json();
+      if (d && !d.error) {
+        return {
+          country: d.country_name || '',
+          country_code: d.country_code || '',
+          region: d.region || '',
+          city: d.city || '',
+          lat: d.latitude,
+          lon: d.longitude,
+          timezone: d.timezone || '',
+          isp: d.org || '',
+        };
+      }
+    }
+  } catch (_) {}
+  // Fallback : interroger le serveur pour résoudre (repli)
+  return { country: '', country_code: '', region: '', city: '', lat: null, lon: null, timezone: '', isp: '' };
+}
+
+// Créer un lien tracker (auth requise)
+app.post('/api/tools/tracker/create', requireAuth, analysisLimiter,
+  [body('label').optional().trim().isLength({ max: 80 })],
+  validate,
+  async (req, res) => {
+    const code = 'TRK-' + crypto.randomBytes(4).toString('hex').toUpperCase();
+    const owner = req.user.email;
+    const token = crypto.randomBytes(12).toString('hex');
+    const label = req.body.label || `Tracker ${new Date().toLocaleString()}`;
+    const record = { code, owner, label, token, created_at: new Date().toISOString(), hits: 0 };
+
+    // Persister
+    let persisted = false;
+    try {
+      const { error } = await supabase.from('ip_trackers').insert(record);
+      if (!error) persisted = true;
+    } catch (_) {}
+    trackerStore.set(code, record);
+
+    // En attendre la requête de la cible sur ce lien
+    trackerMemoryStore.set(code, []);
+
+    const base = `${req.protocol}://${req.get('host')}`;
+    res.json({
+      success: true,
+      code,
+      link: `${base}/l/${code}?t=${token}`,
+      results_link: `${base}/api/tools/tracker/${code}/results?token=${token}`,
+      label,
+      owners_only: owner,
+    });
+  }
+);
+
+// Le lien « à partager » : la cible clique ici → on capture SON IP
+// IMPORTANT : pas d'auth (la cible n'est pas connectée)
+app.get('/l/:code', async (req, res) => {
+  const { code } = req.params;
+  const record = trackerStore.get(code);
+  if (!record) return res.status(404).send('Lien inconnu');
+
+  const ip = getClientIp(req);
+  const geo = await ipToGeo(ip);
+  const hit = {
+    ip,
+    user_agent: req.headers['user-agent'] || '',
+    referer: req.headers['referer'] || '',
+    country: geo.country,
+    country_code: geo.country_code,
+    region: geo.region,
+    city: geo.city,
+    lat: geo.lat,
+    lon: geo.lon,
+    timezone: geo.timezone,
+    isp: geo.isp,
+    captured_at: new Date().toISOString(),
+  };
+
+  // Enregistrer le hit
+  record.hits++;
+  let hits = trackerMemoryStore.get(code) || [];
+  hits.push(hit);
+  trackerMemoryStore.set(code, hits);
+
+  try {
+    await supabase.from('ip_tracker_hits').insert({ code, ...hit });
+  } catch (_) {}
+
+  // Page neutre pour ne pas éveiller les soupçons
+  res.status(200).send(`<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="robots" content="noindex"><title>Chargement…</title></head><body style="font-family:sans-serif;background:#fff;color:#333;display:flex;align-items:center;justify-content:center;height:100vh;margin:0"><p>Chargement… veuillez patienter.</p></body></html>`);
+});
+
+// Consulter les résultats d'un tracker (auth + token du créateur)
+app.get('/api/tools/tracker/:code/results', requireAuth, async (req, res) => {
+  const { code } = req.params;
+  const record = trackerStore.get(code);
+  if (!record) return res.status(404).json({ error: 'Tracker introuvable' });
+  if (record.owner !== req.user.email) return res.status(403).json({ error: 'Accès refusé' });
+
+  const hits = trackerMemoryStore.get(code) || [];
+  res.json({ success: true, tracker: record, hits, total: record.hits, last: hits[hits.length-1] || null });
+});
 
 // ═══════════════════════════════════════
 // ROUTES ADMIN

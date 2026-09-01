@@ -1,0 +1,5 @@
+requests>=2.28.0
+scapy>=2.5.0
+
+# Outils OSINT — voir locate_person.py, wifi_scan.py,
+# nmap_analysis.py, pentest_tools.py
