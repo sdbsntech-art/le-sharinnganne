@@ -1340,141 +1340,144 @@ async function route(event) {
   }
 
   // ── AUTH (public) ──
-  if (method === 'POST' && path === '/api/auth/register') {
+  if (method === 'POST' && path.endsWith('/auth/register')) {
     return await handleAuthRegister(event);
   }
-  if (method === 'POST' && path === '/api/auth/login') {
+  if (method === 'POST' && path.endsWith('/auth/login')) {
     return await handleAuthLogin(event);
   }
 
   // ── AUTH (authenticated) ──
-  if (method === 'GET' && path === '/api/auth/me') {
+  if (method === 'GET' && path.endsWith('/auth/me')) {
     const user = checkAuth(event);
     return await handleAuthMe(user);
   }
 
   // ── /api/analyze ──
-  if (method === 'POST' && path === '/api/analyze') {
+  if (method === 'POST' && path.endsWith('/analyze')) {
     const user = checkAuth(event);
     return await handleAnalyze(user, event);
   }
 
   // ── /api/scan ──
-  if (method === 'POST' && path === '/api/scan') {
+  if (method === 'POST' && path.endsWith('/scan')) {
     const user = checkAuth(event);
     return await handleScan(user, event);
   }
 
   // ── /api/tools/whois ──
-  if (method === 'POST' && path === '/api/tools/whois') {
+  if (method === 'POST' && path.endsWith('/tools/whois')) {
     checkAuth(event);
     return await handleWhois(event);
   }
 
   // ── /api/tools/attack-lab ──
-  if (method === 'POST' && path === '/api/tools/attack-lab') {
+  if (method === 'POST' && path.endsWith('/tools/attack-lab')) {
     checkAuth(event);
     return handleAttackLab(event);
   }
 
   // ── /api/tools/wifi-audit ──
-  if (method === 'POST' && path === '/api/tools/wifi-audit') {
+  if (method === 'POST' && path.endsWith('/tools/wifi-audit')) {
     checkAuth(event);
     return handleWifiAudit(event);
   }
 
   // ── /api/tools/detect-tech ──
-  if (method === 'POST' && path === '/api/tools/detect-tech') {
+  if (method === 'POST' && path.endsWith('/tools/detect-tech')) {
     checkAuth(event);
     return await handleDetectTech(event);
   }
 
   // ── /api/search/google ──
-  if (method === 'POST' && path === '/api/search/google') {
+  if (method === 'POST' && path.endsWith('/search/google')) {
     checkAuth(event);
     return handleSearchGoogle(event);
   }
 
   // ── /api/threats/darkweb ──
-  if (method === 'GET' && path === '/api/threats/darkweb') {
+  if (method === 'GET' && path.endsWith('/threats/darkweb')) {
     checkAuth(event);
     return handleDarkweb();
   }
 
   // ── /api/veille/intelligence ──
-  if (method === 'GET' && path === '/api/veille/intelligence') {
+  if (method === 'GET' && path.endsWith('/veille/intelligence')) {
     checkAuth(event);
     return await handleVeille();
   }
 
   // ── /api/messages/send ──
-  if (method === 'POST' && path === '/api/messages/send') {
+  if (method === 'POST' && path.endsWith('/messages/send')) {
     const user = checkAuth(event);
     return await handleMessageSend(user, event);
   }
 
   // ── /api/messages/{channel_key} ──
-  if (method === 'GET' && segments.length === 3 && segments[0] === 'api' && segments[1] === 'messages') {
+  if (method === 'GET' && path.includes('/messages/')) {
     const user = checkAuth(event);
-    return await handleMessageGet(user, segments[2]);
+    const channelKey = path.split('/messages/')[1];
+    return await handleMessageGet(user, channelKey);
   }
 
   // ── /api/messages/read ──
-  if (method === 'PATCH' && path === '/api/messages/read') {
+  if (method === 'PATCH' && path.endsWith('/messages/read')) {
     const user = checkAuth(event);
     return await handleMessageRead(user, event);
   }
 
   // ── /api/channels/list ──
-  if (method === 'GET' && path === '/api/channels/list') {
+  if (method === 'GET' && path.endsWith('/channels/list')) {
     checkAuth(event);
     return await handleChannelsList();
   }
 
   // ── /api/channels/join ──
-  if (method === 'POST' && path === '/api/channels/join') {
+  if (method === 'POST' && path.endsWith('/channels/join')) {
     checkAuth(event);
     return handleChannelJoin(event);
   }
 
   // ── /api/tools/wifi-scan ──
-  if (method === 'POST' && path === '/api/tools/wifi-scan') {
+  if (method === 'POST' && path.endsWith('/tools/wifi-scan')) {
     checkAuth(event);
     return handleWifiScan();
   }
 
   // ── /api/tools/nmap-scan ──
-  if (method === 'POST' && path === '/api/tools/nmap-scan') {
+  if (method === 'POST' && path.endsWith('/tools/nmap-scan')) {
     checkAuth(event);
     return await handleNmapScan(event);
   }
 
   // ── /api/tools/pentest-python ──
-  if (method === 'POST' && path === '/api/tools/pentest-python') {
+  if (method === 'POST' && path.endsWith('/tools/pentest-python')) {
     checkAuth(event);
     return handlePentestPython(event);
   }
 
   // ── /api/tools/locate ──
-  if (method === 'POST' && path === '/api/tools/locate') {
+  if (method === 'POST' && path.endsWith('/tools/locate')) {
     checkAuth(event);
     return await handleLocate(event);
   }
 
   // ── /api/tools/tracker/create ──
-  if (method === 'POST' && path === '/api/tools/tracker/create') {
+  if (method === 'POST' && path.endsWith('/tools/tracker/create')) {
     const user = checkAuth(event);
     return await handleTrackerCreate(user, event);
   }
 
   // ── /api/tools/tracker/{code}/results ──
-  if (method === 'GET' && segments.length === 5 && segments[0] === 'api' && segments[1] === 'tools' && segments[2] === 'tracker' && segments[4] === 'results') {
+  if (method === 'GET' && path.includes('/tools/tracker/') && path.endsWith('/results')) {
     const user = checkAuth(event);
-    return handleTrackerResults(user, segments[3]);
+    const parts = path.split('/');
+    const code = parts[parts.indexOf('tracker') + 1];
+    return handleTrackerResults(user, code);
   }
 
   // ── /api/admin/stats ──
-  if (method === 'GET' && path === '/api/admin/stats') {
+  if (method === 'GET' && path.endsWith('/admin/stats')) {
     checkAdmin(event);
     return await handleAdminStats();
   }
