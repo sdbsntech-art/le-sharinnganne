@@ -1667,11 +1667,11 @@ async function api(path, opts={}){
 }
 
 function demoMode(path, opts){
+  path = (path || '').replace(/^\/api/, '');
   const db = getDB();
   const body = opts.body ? JSON.parse(opts.body) : {};
-  const cleanPath = path.replace(/^\/api/, '');
 
-  if(cleanPath==='/auth/login'){
+  if(path==='/auth/login'){
     const u = db[body.email];
     if(!u) throw new Error('Email introuvable');
     if(u.password !== body.password) throw new Error('Mot de passe incorrect');

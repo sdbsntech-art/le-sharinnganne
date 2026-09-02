@@ -1289,24 +1289,49 @@ async function handleAdminLogs() {
 const json = (obj, statusCode = 200) => ({
   statusCode,
   body: typeof obj === 'string' ? obj : JSON.stringify(obj),
-  headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+  headers: {
+    'Content-Type': 'application/json',
+    'Cache-Control': 'no-store',
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+  },
 });
 
 const html = (body, statusCode = 200) => ({
   statusCode,
   body,
-  headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' },
+  headers: {
+    'Content-Type': 'text/html; charset=utf-8',
+    'Cache-Control': 'no-store',
+    'Access-Control-Allow-Origin': '*',
+  },
 });
 
 const errRes = (statusCode, message) => json({ error: message }, statusCode);
 
 async function route(event) {
   const method = (event.httpMethod || 'GET').toUpperCase();
-  let path = (event.path || '/').split('?')[0];
-  path = path.replace(/^\/\.netlify\/functions\/api(?=\/|$)/, '');
-  if (!path.startsWith('/api')) {
-    path = '/api' + (path.startsWith('/') ? path : '/' + path);
+
+  // Support CORS preflight
+  if (method === 'OPTIONS') {
+    return {
+      statusCode: 204,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+      },
+      body: '',
+    };
   }
+
+  let rawPath = (event.path || '/').split('?')[0];
+  rawPath = rawPath.replace(/^\/\.netlify\/functions\/api(?=\/|$)/, '');
+  if (!rawPath.startsWith('/api')) {
+    rawPath = '/api' + (rawPath.startsWith('/') ? rawPath : '/' + rawPath);
+  }
+  const path = rawPath.length > 4 && rawPath.endsWith('/') ? rawPath.slice(0, -1) : rawPath;
   const segments = path.split('/').filter(Boolean); // e.g. ['api','auth','login']
 
   // health
