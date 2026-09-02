@@ -1650,20 +1650,35 @@ function initAdmin(){
 // ══════════════════════════════════════════
 // API HELPER
 // ══════════════════════════════════════════
+const API_HOSTS = ['', 'http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:3003', 'http://127.0.0.1:3000', 'http://127.0.0.1:3001'];
+let detectedApiHost = null;
+
 async function api(path, opts={}){
   const headers={'Content-Type':'application/json'};
   if(currentToken) headers['Authorization']='Bearer '+currentToken;
   const fullPath = path.startsWith('/api') ? path : '/api' + (path.startsWith('/') ? path : '/' + path);
-  try{
-    const res = await fetch(API + fullPath, {...opts, headers:{...headers,...(opts.headers||{})}});
-    if(!res.ok){ const d=await res.json().catch(()=>({})); throw new Error(d.error||'Erreur API'); }
-    return res.json();
-  }catch(e){
-    if(e.message.includes('fetch')||e.message.includes('Failed')||e.message.includes('NetworkError')){
-      return demoMode(path, opts);
+
+  const hostsToTry = detectedApiHost ? [detectedApiHost, ...API_HOSTS.filter(h => h !== detectedApiHost)] : API_HOSTS;
+  let lastErr = null;
+
+  for (const host of hostsToTry) {
+    try {
+      const res = await fetch(host + fullPath, {...opts, headers:{...headers,...(opts.headers||{})}});
+      if (!res.ok) {
+        const d = await res.json().catch(()=>({}));
+        throw new Error(d.error || 'Erreur API');
+      }
+      detectedApiHost = host;
+      return await res.json();
+    } catch(e) {
+      lastErr = e;
+      if (!e.message.includes('fetch') && !e.message.includes('Failed') && !e.message.includes('NetworkError') && !e.message.includes('Load failed')) {
+        throw e;
+      }
     }
-    throw e;
   }
+
+  return demoMode(path, opts);
 }
 
 function demoMode(path, opts){

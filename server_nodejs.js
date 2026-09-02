@@ -1798,20 +1798,26 @@ app.use((err, req, res, next) => {
 // ═══════════════════════════════════════
 // DÉMARRAGE
 // ═══════════════════════════════════════
-const server = app.listen(PORT, async () => {
-  await ensureAdminUser();
-  console.log(`\n🔴 SHARINNGANNE API — Port ${PORT}`);
-  console.log(`   Base MySQL: ${DB_NAME} @ ${DB_HOST}:${DB_PORT}`);
-  console.log(`   Admin: ${ADMIN_EMAIL}\n`);
-});
+function startServer(portToTry) {
+  const currentPort = Number(portToTry);
+  const server = app.listen(currentPort, async () => {
+    await ensureAdminUser();
+    console.log(`\n🔴 SHARINNGANNE API — Serveur actif sur http://localhost:${currentPort}`);
+    console.log(`   Base MySQL: ${DB_NAME} @ ${DB_HOST}:${DB_PORT}`);
+    console.log(`   Admin: ${ADMIN_EMAIL}\n`);
+  });
 
-server.on('error', (error) => {
-  if (error.code === 'EADDRINUSE') {
-    console.error(`\nLe port ${PORT} est déjà utilisé. Arrêtez l'ancien serveur ou lancez avec PORT=3001.`);
-    process.exit(1);
-  }
-  throw error;
-});
+  server.on('error', (error) => {
+    if (error.code === 'EADDRINUSE') {
+      console.warn(`⚠️ Port ${currentPort} déjà utilisé. Tentative d'activation sur le port ${currentPort + 1}...`);
+      startServer(currentPort + 1);
+    } else {
+      console.error('Erreur démarrage serveur:', error.message);
+    }
+  });
+}
+
+startServer(PORT);
 
 // ═══════════════════════════════════════
 // DONNÉES DEMO THREATS
