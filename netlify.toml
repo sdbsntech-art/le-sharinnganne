@@ -4,12 +4,12 @@
 
 [[redirects]]
   from = "/api/*"
-  to = "/.netlify/functions/api"
+  to = "/.netlify/functions/api/:splat"
   force = true
 
 [[redirects]]
   from = "/l/*"
-  to = "/.netlify/functions/l"
+  to = "/.netlify/functions/l/:splat"
   force = true
 
 [[redirects]]

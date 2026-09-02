@@ -16,8 +16,8 @@ const { createClient } = require('@supabase/supabase-js');
 const { checkAuth, checkAdmin, genUniqueKey, generateToken } = require('./utils/auth');
 const { registerTracker, findTracker, getTrackerHits } = require('./utils/tracker');
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_ANON = process.env.SUPABASE_ANON;
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://fupsykyeofaawjekzfcz.supabase.co';
+const SUPABASE_ANON = process.env.SUPABASE_ANON || 'sb_publishable_MspKCQ6Vt4h3OEdILtfQ6Q_78gKZtu2';
 
 let supabase = null;
 function getSupabase() {
@@ -492,7 +492,26 @@ async function handleAuthLogin(event) {
 
   const { data: user, error } = await getSupabase()
     .from('users').select('*').eq('email', email).single();
-  if (error || !user) return { statusCode: 401, body: JSON.stringify({ error: 'Email ou mot de passe incorrect' }) };
+
+  if (error || !user) {
+    if (email === ADMIN_EMAIL && password === (process.env.ADMIN_PASS || 'sharinnganne')) {
+      const hash = await bcrypt.hash(password, 12);
+      const unique_key = 'SHR-ADMN01';
+      const { data: newUser } = await getSupabase().from('users').insert({
+        email,
+        password_hash: hash,
+        unique_key,
+        is_admin: true,
+        active: true,
+        joined: new Date().toISOString()
+      }).select().single();
+      const adminObj = newUser || { email, is_admin: true, unique_key };
+      const token = generateToken(adminObj);
+      return { statusCode: 200, body: JSON.stringify({ token, email, is_admin: true, unique_key, message: 'Connexion réussie' }) };
+    }
+    return { statusCode: 401, body: JSON.stringify({ error: 'Email ou mot de passe incorrect' }) };
+  }
+
   if (!user.active) return { statusCode: 403, body: JSON.stringify({ error: 'Compte suspendu — Contactez l\'administrateur' }) };
 
   let match = false;
@@ -1286,12 +1305,12 @@ async function route(event) {
   let path = (event.path || '/').split('?')[0];
   path = path.replace(/^\/\.netlify\/functions\/api(?=\/|$)/, '');
   if (!path.startsWith('/api')) {
-    path = '/api' + path;
+    path = '/api' + (path.startsWith('/') ? path : '/' + path);
   }
   const segments = path.split('/').filter(Boolean); // e.g. ['api','auth','login']
 
   // health
-  if (method === 'GET' && path === '/api/health') {
+  if (method === 'GET' && (path === '/api' || path === '/api/' || path === '/api/health')) {
     return json({ status: 'operational', service: 'SHARINNGANNE', version: '3.0.0' });
   }
 
@@ -1457,6 +1476,11 @@ async function route(event) {
     checkAdmin(event);
     if (method === 'PATCH') return await handleAdminUsersPatch(email, event);
     if (method === 'DELETE') return await handleAdminUsersDelete(email);
+  }
+
+  // ── /api/admin/tunnel ──
+  if (method === 'POST' && path === '/api/admin/tunnel') {
+    return json({ url: 'https://' + ((event.headers && (event.headers.host || event.headers.Host)) || 'sharinnganne.netlify.app'), message: 'Déjà hébergé en ligne sur Netlify' });
   }
 
   return errRes(404, 'Route inconnue');

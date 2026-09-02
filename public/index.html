@@ -1653,8 +1653,9 @@ function initAdmin(){
 async function api(path, opts={}){
   const headers={'Content-Type':'application/json'};
   if(currentToken) headers['Authorization']='Bearer '+currentToken;
+  const fullPath = path.startsWith('/api') ? path : '/api' + (path.startsWith('/') ? path : '/' + path);
   try{
-    const res = await fetch(API+path, {...opts, headers:{...headers,...(opts.headers||{})}});
+    const res = await fetch(API + fullPath, {...opts, headers:{...headers,...(opts.headers||{})}});
     if(!res.ok){ const d=await res.json().catch(()=>({})); throw new Error(d.error||'Erreur API'); }
     return res.json();
   }catch(e){
@@ -1668,8 +1669,9 @@ async function api(path, opts={}){
 function demoMode(path, opts){
   const db = getDB();
   const body = opts.body ? JSON.parse(opts.body) : {};
+  const cleanPath = path.replace(/^\/api/, '');
 
-  if(path==='/auth/login'){
+  if(cleanPath==='/auth/login'){
     const u = db[body.email];
     if(!u) throw new Error('Email introuvable');
     if(u.password !== body.password) throw new Error('Mot de passe incorrect');

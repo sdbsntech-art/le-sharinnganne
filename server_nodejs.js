@@ -200,7 +200,11 @@ async function dbQuery(sql, params = []) {
     const [rows] = await dbPool.execute(sql, params);
     return rows;
   } catch (error) {
-    console.error('DB Query error:', error.message);
+    if (error.code === 'ECONNREFUSED') {
+      console.warn(`⚠️ [MySQL] Connexion refusée sur ${DB_HOST}:${DB_PORT}. (Si vous utilisez MySQL localement, pensez à démarrer Laragon / service MySQL).`);
+    } else {
+      console.error('DB Query error:', error.message);
+    }
     throw error;
   }
 }
@@ -254,7 +258,9 @@ async function ensureAdminUser() {
       console.log('[Init] Statut admin synchronisé pour:', ADMIN_EMAIL);
     }
   } catch (e) {
-    console.warn('Erreur ensureAdminUser (MySQL):', e.message || e);
+    if (e.code !== 'ECONNREFUSED') {
+      console.warn('Erreur ensureAdminUser (MySQL):', e.message || e);
+    }
   }
 }
 
@@ -1796,7 +1802,7 @@ const server = app.listen(PORT, async () => {
   await ensureAdminUser();
   console.log(`\n🔴 SHARINNGANNE API — Port ${PORT}`);
   console.log(`   Base MySQL: ${DB_NAME} @ ${DB_HOST}:${DB_PORT}`);
-  console.log(`   Admin: ${ADMIN_EMAIL} (mot de passe: ${ADMIN_PASS})\n`);
+  console.log(`   Admin: ${ADMIN_EMAIL}\n`);
 });
 
 server.on('error', (error) => {
