@@ -2,7 +2,7 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 
 const checkAuth = (event) => {
-  const JWT_SECRET = process.env.JWT_SECRET || 'sharinnganne-secret-jwt-key-2026';
+  const JWT_SECRET = process.env.JWT_SECRET;
   const authHeader = (event.headers && (event.headers.authorization || event.headers.Authorization)) || '';
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     throw { statusCode: 401, message: 'Non authentifié' };
@@ -31,7 +31,7 @@ const genUniqueKey = () => {
 };
 
 const generateToken = (user) => {
-  const JWT_SECRET = process.env.JWT_SECRET || 'sharinnganne-secret-jwt-key-2026';
+  const JWT_SECRET = process.env.JWT_SECRET;
   return jwt.sign(
     { email: user.email, is_admin: user.is_admin, uid: user.id },
     JWT_SECRET,

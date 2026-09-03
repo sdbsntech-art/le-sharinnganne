@@ -29,7 +29,7 @@ function getSupabase() {
   return supabase;
 }
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'seydoubakhayokho1@gmail.com';
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || '';
 
 // ══════════════════════════════════════════════════
 // HELPERS
@@ -494,7 +494,9 @@ async function handleAuthLogin(event) {
     .from('users').select('*').eq('email', email).single();
 
   if (error || !user) {
-    if (email === ADMIN_EMAIL && password === (process.env.ADMIN_PASS || 'sharinnganne')) {
+    const adminEmail = process.env.ADMIN_EMAIL;
+    const adminPass = process.env.ADMIN_PASS;
+    if (adminEmail && adminPass && email === adminEmail && password === adminPass) {
       const hash = await bcrypt.hash(password, 12);
       const unique_key = 'SHR-ADMN01';
       const { data: newUser } = await getSupabase().from('users').insert({
